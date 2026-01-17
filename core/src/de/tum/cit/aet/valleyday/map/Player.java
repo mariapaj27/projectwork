@@ -1,5 +1,8 @@
 package de.tum.cit.aet.valleyday.map;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
@@ -13,13 +16,19 @@ import de.tum.cit.aet.valleyday.texture.Drawable;
  * The player has a hitbox, so it can collide with other objects in the game.
  */
 public class Player implements Drawable {
-    
+
+
     /** Total time elapsed since the game started. We use this for calculating the player movement and animating it. */
     private float elapsedTime;
     
     /** The Box2D hitbox of the player, used for position and collision detection. */
     private final Body hitbox;
-    
+
+    // speed of the move
+    private static final float MOVE_SPEED = 4.0f;
+    //
+    private Direction currentDirection = Direction.DOWN;
+
     public Player(World world, float x, float y) {
         this.hitbox = createHitbox(world, x, y);
     }
@@ -62,20 +71,60 @@ public class Player implements Drawable {
      * @param frameTime the time since the last frame.
      */
     public void tick(float frameTime) {
-        this.elapsedTime += frameTime;
-        // Make the player move in a circle with radius 2 tiles
-        // You can change this to make the player move differently, e.g. in response to user input.
-        // See Gdx.input.isKeyPressed() for keyboard input
-        float xVelocity = (float) Math.sin(this.elapsedTime) * 2;
-        float yVelocity = (float) Math.cos(this.elapsedTime) * 2;
+        //check arrow keys for input
+        boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT);
+        boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        boolean upPressed = Gdx.input.isKeyPressed(Input.Keys.UP);
+        boolean downPressed = Gdx.input.isKeyPressed(Input.Keys.DOWN);
+        // coordinates of movement
+        float xVelocity = 0;
+        float yVelocity = 0;
+
+        //calculate velocity based on keys
+        if (leftPressed) {
+            xVelocity -= MOVE_SPEED;
+            currentDirection = Direction.LEFT;
+        }
+        if (rightPressed) {
+            xVelocity += MOVE_SPEED;
+            currentDirection = Direction.RIGHT;
+        }
+        if (downPressed) {
+            yVelocity -= MOVE_SPEED;
+            currentDirection = Direction.DOWN;
+        }
+        if (upPressed) {
+            yVelocity += MOVE_SPEED;
+            currentDirection = Direction.UP;
+        }
+        //BONUS DIAGONAL MOVEMENT
+        //diagonal movement(two buttons pressed together)
+        if (xVelocity != 0 && yVelocity != 0) {
+            float length = (float) Math.sqrt(xVelocity * xVelocity + yVelocity * yVelocity);
+            xVelocity = (xVelocity / length) * MOVE_SPEED;
+            yVelocity = (yVelocity / length) * MOVE_SPEED;
+        }
+
+        // Update animation only when moving
+        if (xVelocity != 0 || yVelocity != 0) {
+            this.elapsedTime += frameTime;
+        } else {
+            this.elapsedTime = 0;
+        }
+
         this.hitbox.setLinearVelocity(xVelocity, yVelocity);
     }
     
     @Override
     public TextureRegion getCurrentAppearance() {
-        // Get the frame of the walk down animation that corresponds to the current time.
-        return Animations.CHARACTER_WALK_DOWN.getKeyFrame(this.elapsedTime, true);
-    }
+        // movement animation that corresponds to the current direction.
+        Animation<TextureRegion> animation = switch (currentDirection) {
+            case UP -> Animations.CHARACTER_WALK_UP;
+            case LEFT -> Animations.CHARACTER_WALK_LEFT;
+            case RIGHT -> Animations.CHARACTER_WALK_RIGHT;
+            default -> Animations.CHARACTER_WALK_DOWN;
+        };
+        return animation.getKeyFrame(this.elapsedTime, true);    }
     
     @Override
     public float getX() {
@@ -87,5 +136,12 @@ public class Player implements Drawable {
     public float getY() {
         // The y-coordinate of the player is the y-coordinate of the hitbox (this can change every frame).
         return hitbox.getPosition().y;
+    }
+
+    /**
+     * Enum of movement directions for the player.
+     */
+    private enum Direction {
+        UP, DOWN, LEFT, RIGHT
     }
 }
