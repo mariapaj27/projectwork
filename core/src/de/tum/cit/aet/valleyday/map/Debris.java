@@ -46,7 +46,7 @@ public class Debris implements Drawable {
     @Override
     public TextureRegion getCurrentAppearance() {
         // the texture of the debris
-        return SpriteSheet.BASIC_TILES.at(9, 5);
+        return SpriteSheet.OUTSIDE_TILES.at(3, 2);
     }
     
     @Override

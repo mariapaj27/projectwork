@@ -4,19 +4,21 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 import de.tum.cit.aet.valleyday.ValleyDayGame;
+import de.tum.cit.aet.valleyday.texture.Drawable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Represents the game map.
- * Holds all the objects and entities in the game.
+ * Contains all the objects and entities in the game.
  */
 public class GameMap {
     
-    // A static block is executed once when the class is referenced for the first time.
+    // executed when the class is referenced for the first time.
     static {
-        // Initialize the Box2D physics engine.
+        // initializes the Box2D physics engine.
         com.badlogic.gdx.physics.box2d.Box2D.init();
     }
     
@@ -48,7 +50,83 @@ public class GameMap {
     private final Chest chest;
     
     private final Flowers[][] flowers;
-    
+
+    // objects loaded from file
+    private final List<Fence> fences;
+    private final List<Debris> debris;
+    private final List<Exit> exits;
+    private final List<WildlifeVisitor> wildlifeVisitors;
+    private final List<Fertilizer> fertilizers;
+    private final List<WateringCan> wateringCans;
+    private final List<Shovel> shovels;
+    private final List<Grass> grass;
+
+    /**
+     * Constructor that loads map from MapLoader data.
+     * @param game The game instance.
+     * @param mapData The map data loaded from a file.
+     */
+    public GameMap(ValleyDayGame game, MapLoader.MapData mapData) {
+        this.game = game;
+        this.world = new World(Vector2.Zero, true);
+
+        // initializes lists
+        this.fences = new ArrayList<>();
+        this.debris = new ArrayList<>();
+        this.exits = new ArrayList<>();
+        this.wildlifeVisitors = new ArrayList<>();
+        this.fertilizers = new ArrayList<>();
+        this.wateringCans = new ArrayList<>();
+        this.shovels = new ArrayList<>();
+        this.grass = new ArrayList<>();
+
+        // creates player at entrance position
+        this.player = new Player(this.world, mapData.entranceX, mapData.entranceY);
+
+        // creates objects based on map data
+        for (MapLoader.MapObject obj : mapData.objects) {
+            switch (obj.type) {
+                case 0: // Fence
+                    fences.add(new Fence(world, obj.x, obj.y));
+                    break;
+                case 1: // Debris
+                    debris.add(new Debris(world, obj.x, obj.y));
+                    break;
+                case 4: // Exit
+                    exits.add(new Exit(world, obj.x, obj.y));
+                    break;
+                case 3: // Wildlife visitor
+                    wildlifeVisitors.add(new WildlifeVisitor(obj.x, obj.y));
+                    break;
+                case 5: // Fertilizer
+                    fertilizers.add(new Fertilizer(obj.x, obj.y));
+                    break;
+                case 6: // Watering Can
+                    wateringCans.add(new WateringCan(obj.x, obj.y));
+                    break;
+                case 7: // Shovel
+                    shovels.add(new Shovel(obj.x, obj.y));
+                    break;
+            }
+        }
+
+        // fills all cells with grass
+        // objects with transparent backgrounds have also grass
+        for (int x = mapData.minX; x <= mapData.maxX; x++) {
+            for (int y = mapData.minY; y <= mapData.maxY; y++) {
+                grass.add(new Grass(x, y));
+            }
+        }
+
+        this.chest = null;
+        this.flowers = null;
+    }
+
+    /**
+     * Legacy constructor for backward compatibility.
+     * Creates a default map with hardcoded objects.
+     * @param game The game instance.
+     */
     public GameMap(ValleyDayGame game) {
         this.game = game;
         this.world = new World(Vector2.Zero, true);
@@ -63,6 +141,15 @@ public class GameMap {
                 this.flowers[i][j] = new Flowers(i, j);
             }
         }
+        // initializes empty lists for map objects
+        this.fences = new ArrayList<>();
+        this.debris = new ArrayList<>();
+        this.exits = new ArrayList<>();
+        this.wildlifeVisitors = new ArrayList<>();
+        this.fertilizers = new ArrayList<>();
+        this.wateringCans = new ArrayList<>();
+        this.shovels = new ArrayList<>();
+        this.grass = new ArrayList<>();
     }
     
     /**
@@ -100,6 +187,71 @@ public class GameMap {
     
     /** Returns the flowers on the map. */
     public List<Flowers> getFlowers() {
+        if (flowers == null) {
+            return new ArrayList<>();
+        }
         return Arrays.stream(flowers).flatMap(Arrays::stream).toList();
+    }
+
+    /** Returns all drawable objects on the map. */
+    public List<Drawable> getAllDrawables() {
+        List<Drawable> drawables = new ArrayList<>();
+
+        // adds grass first (background)
+        drawables.addAll(grass);
+
+        // adds all map objects
+        drawables.addAll(fences);
+        drawables.addAll(debris);
+        drawables.addAll(exits);
+        drawables.addAll(wildlifeVisitors);
+        drawables.addAll(fertilizers);
+        drawables.addAll(wateringCans);
+        drawables.addAll(shovels);
+
+        // adds legacy objects if they exist
+        if (flowers != null) {
+            drawables.addAll(getFlowers());
+        }
+        if (chest != null) {
+            drawables.add(chest);
+        }
+
+        // adds play as last on top
+        drawables.add(player);
+
+        return drawables;
+    }
+     //getters
+    public List<Fence> getFences() {
+        return fences;
+    }
+
+    public List<Debris> getDebris() {
+        return debris;
+    }
+
+    public List<Exit> getExits() {
+        return exits;
+    }
+
+    public List<WildlifeVisitor> getWildlifeVisitors() {
+        return wildlifeVisitors;
+    }
+
+    public List<Fertilizer> getFertilizers() {
+        return fertilizers;
+    }
+
+    public List<WateringCan> getWateringCans() {
+        return wateringCans;
+    }
+
+    public List<Shovel> getShovels() {
+        return shovels;
+    }
+
+    public List<Grass> getGrass() {
+        return grass;
     }
 }
