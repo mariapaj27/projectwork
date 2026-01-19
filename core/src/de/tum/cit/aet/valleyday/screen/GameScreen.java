@@ -83,17 +83,7 @@ public class GameScreen implements Screen {
         // Render the HUD on the screen
         hud.render();
     }
-    
-    /**
-     * Updates the camera to match the current state of the game.
-     * Currently, this just centers the camera at the origin.
-     */
-    private void updateCamera() {
-        mapCamera.setToOrtho(false);
-        mapCamera.position.x = 3.5f * TILE_SIZE_PX * SCALE;
-        mapCamera.position.y = 3.5f * TILE_SIZE_PX * SCALE;
-        mapCamera.update(); // This is necessary to apply the changes
-    }
+
       /**
      * Updates the camera to match the current state of the game.
      * Centers the camera on the player's position.
@@ -106,36 +96,18 @@ public class GameScreen implements Screen {
             float playerX = map.getPlayer().getX();
             float playerY = map.getPlayer().getY();
             
-            // Convert tile coordinates to pixel coordinates
+            // converts  coordinates to pixel coordinates
             mapCamera.position.x = playerX * TILE_SIZE_PX * SCALE;
             mapCamera.position.y = playerY * TILE_SIZE_PX * SCALE;
         } else {
-            // Fallback to default position if player doesn't exist
+            // default position if player doesn't exist
             mapCamera.position.x = 3.5f * TILE_SIZE_PX * SCALE;
             mapCamera.position.y = 3.5f * TILE_SIZE_PX * SCALE;
         }
         
         mapCamera.update(); // This is necessary to apply the changes
     }
-    
-    private void renderMap() {
-        // This configures the spriteBatch to use the camera's perspective when rendering
-        spriteBatch.setProjectionMatrix(mapCamera.combined);
-        
-        // Start drawing
-        spriteBatch.begin();
-        
-        // Render everything in the map here, in order from lowest to highest (later things appear on top)
-        // You may want to add a method to GameMap to return all the drawables in the correct order
-        for (Flowers flowers : map.getFlowers()) {
-        draw(spriteBatch, flowers);
-        }
-        draw(spriteBatch, map.getChest());
-        draw(spriteBatch, map.getPlayer());
-        
-        // Finish drawing, i.e. send the drawn items to the graphics card
-        spriteBatch.end();
-    }
+
      private void renderMap() {
         // This configures the spriteBatch to use the camera's perspective when rendering
         spriteBatch.setProjectionMatrix(mapCamera.combined);

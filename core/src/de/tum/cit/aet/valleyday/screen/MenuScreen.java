@@ -44,7 +44,7 @@ public class MenuScreen implements Screen {
         // Add a label as a title
         table.add(new Label("Hello World from the Menu!", game.getSkin(), "title")).padBottom(80).row();
 
-        // Create and add a button to load a map
+        // creates and adds a button to load a map
         TextButton loadMapButton = new TextButton("Load Map", game.getSkin());
         table.add(loadMapButton).width(300).row();
         loadMapButton.addListener(new ChangeListener() {
@@ -53,17 +53,15 @@ public class MenuScreen implements Screen {
                 game.loadMap(new MapLoader.MapLoadCallback() {
                     @Override
                     public void onMapLoaded(MapLoader.MapData mapData) {
-                        game.goToGame(); // Change to the game screen if map was loaded
+                        game.goToGame(); // game screen if map was loaded
                     }
 
                     @Override
                     public void onCancellation() {
-                        // User cancelled, do nothing
                     }
 
                     @Override
                     public void onError(Exception exception) {
-                        // Handle error - could show a message to the user
                         exception.printStackTrace();
                     }
                 });

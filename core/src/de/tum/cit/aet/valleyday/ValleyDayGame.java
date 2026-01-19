@@ -51,21 +51,6 @@ public class ValleyDayGame extends Game {
     }
 
     /**
-     * Called when the game is created. Initializes the SpriteBatch and Skin.
-     * During the class constructor, libGDX is not fully initialized yet.
-     * Therefore this method serves as a second constructor for the game,
-     * and we can use libGDX resources here.
-     */
-    @Override
-    public void create() {
-        this.spriteBatch = new SpriteBatch(); // Create SpriteBatch for rendering
-        this.skin = new Skin(Gdx.files.internal("skin/craftacular/craftacular-ui.json")); // Load UI skin
-        this.map = new GameMap(this); // Create a new game map (you should change this to load the map from a file instead)
-        MusicTrack.BACKGROUND.play(); // Play some background music
-        goToMenu(); // Navigate to the menu screen
-    }
-
-    /**
      * Switches to the menu screen.
      */
     public void goToMenu() {
@@ -88,12 +73,30 @@ public class ValleyDayGame extends Game {
     public SpriteBatch getSpriteBatch() {
         return spriteBatch;
     }
-    
-    /** Returns the current map, if there is one. */
+
+    /**
+     * Called when the game is created. Initializes the SpriteBatch and Skin.
+     * During the class constructor, libGDX is not fully initialized yet.
+     * Therefore this method serves as a second constructor for the game,
+     * and we can use libGDX resources here.
+     */
+    @Override
+    public void create() {
+        this.spriteBatch = new SpriteBatch(); // Create SpriteBatch for rendering
+        this.skin = new Skin(Gdx.files.internal("skin/craftacular/craftacular-ui.json")); // Load UI skin
+        //this.map = new GameMap(this);
+        MusicTrack.BACKGROUND.play(); // Play some background music
+        goToMenu(); // Navigate to the menu screen
+    }
+
+    /** Returns the current map, if there is one. Creates a default map if none exists. */
     public GameMap getMap() {
+        if (map == null) {
+            map = new GameMap(this);
+        }
         return map;
     }
-    
+
     /**
      * Switches to the given screen and disposes of the previous screen.
      * @param screen the new screen
@@ -116,22 +119,7 @@ public class ValleyDayGame extends Game {
         skin.dispose(); // Dispose the skin
     }
 
-    @Override
-    public void create() {
-        this.spriteBatch = new SpriteBatch(); // Create SpriteBatch for rendering
-        this.skin = new Skin(Gdx.files.internal("skin/craftacular/craftacular-ui.json")); // Load UI skin
-        //this.map = new GameMap(this);
-        MusicTrack.BACKGROUND.play(); // Play some background music
-        goToMenu(); // Navigate to the menu screen
-    }
 
-    /** Returns the current map, if there is one. Creates a default map if none exists. */
-    public GameMap getMap() {
-        if (map == null) {
-            map = new GameMap(this);
-        }
-        return map;
-    }
     
     /**
      * Loads a map from a file using the file chooser.
