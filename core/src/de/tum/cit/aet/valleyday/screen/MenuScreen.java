@@ -14,6 +14,8 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import de.tum.cit.aet.valleyday.ValleyDayGame;
+import de.tum.cit.aet.valleyday.map.MapLoader;
+
 
 /**
  * The MenuScreen class is responsible for displaying the main menu of the game.
@@ -42,6 +44,32 @@ public class MenuScreen implements Screen {
         // Add a label as a title
         table.add(new Label("Hello World from the Menu!", game.getSkin(), "title")).padBottom(80).row();
 
+        // Create and add a button to load a map
+        TextButton loadMapButton = new TextButton("Load Map", game.getSkin());
+        table.add(loadMapButton).width(300).row();
+        loadMapButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                game.loadMap(new MapLoader.MapLoadCallback() {
+                    @Override
+                    public void onMapLoaded(MapLoader.MapData mapData) {
+                        game.goToGame(); // Change to the game screen if map was loaded
+                    }
+
+                    @Override
+                    public void onCancellation() {
+                        // User cancelled, do nothing
+                    }
+
+                    @Override
+                    public void onError(Exception exception) {
+                        // Handle error - could show a message to the user
+                        exception.printStackTrace();
+                    }
+                });
+            }
+        });
+
         // Create and add a button to go to the game screen
         TextButton goToGameButton = new TextButton("Go To Game", game.getSkin());
         table.add(goToGameButton).width(300).row();
@@ -52,6 +80,8 @@ public class MenuScreen implements Screen {
             }
         });
     }
+    
+
     
     /**
      * The render method is called every frame to render the menu screen.

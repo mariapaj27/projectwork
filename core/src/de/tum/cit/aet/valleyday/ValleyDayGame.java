@@ -10,6 +10,7 @@ import de.tum.cit.aet.valleyday.map.GameMap;
 import de.tum.cit.aet.valleyday.screen.GameScreen;
 import de.tum.cit.aet.valleyday.screen.MenuScreen;
 import games.spooky.gdx.nativefilechooser.NativeFileChooser;
+import de.tum.cit.aet.valleyday.map.MapLoader;
 
 /**
  * The ValleyDayGame class represents the core of the Valley Day game.
@@ -113,5 +114,46 @@ public class ValleyDayGame extends Game {
         getScreen().dispose(); // Dispose the current screen
         spriteBatch.dispose(); // Dispose the spriteBatch
         skin.dispose(); // Dispose the skin
+    }
+
+    @Override
+    public void create() {
+        this.spriteBatch = new SpriteBatch(); // Create SpriteBatch for rendering
+        this.skin = new Skin(Gdx.files.internal("skin/craftacular/craftacular-ui.json")); // Load UI skin
+        //this.map = new GameMap(this);
+        MusicTrack.BACKGROUND.play(); // Play some background music
+        goToMenu(); // Navigate to the menu screen
+    }
+
+    /** Returns the current map, if there is one. Creates a default map if none exists. */
+    public GameMap getMap() {
+        if (map == null) {
+            map = new GameMap(this);
+        }
+        return map;
+    }
+    
+    /**
+     * Loads a map from a file using the file chooser.
+     * @param callback The callback to handle the result (map loaded, cancellation, or error).
+     */
+    public void loadMap(MapLoader.MapLoadCallback callback) {
+        MapLoader.loadMap(fileChooser, new MapLoader.MapLoadCallback() {
+            @Override
+            public void onMapLoaded(MapLoader.MapData mapData) {
+                map = new GameMap(ValleyDayGame.this, mapData);
+                callback.onMapLoaded(mapData);
+            }
+
+            @Override
+            public void onCancellation() {
+                callback.onCancellation();
+            }
+
+            @Override
+            public void onError(Exception exception) {
+                callback.onError(exception);
+            }
+        });
     }
 }
