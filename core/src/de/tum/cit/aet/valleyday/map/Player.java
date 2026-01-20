@@ -29,9 +29,25 @@ public class Player implements Drawable {
     //
     private Direction currentDirection = Direction.DOWN;
 
+    private boolean isHitting = false;
+    private float hittingTime = 0f;
+    private static final float HITTING_DURATION = 1.0f;
+
+    //Action after hitting completed
+    private HitCallback hitCallback;
+
+    /**
+     * Interface for hit callback.
+     */
+    public interface HitCallback {
+        void onHitComplete(float targetX, float targetY, Direction direction);
+    }
+
     public Player(World world, float x, float y) {
         this.hitbox = createHitbox(world, x, y);
     }
+
+
     
     /**
      * Creates a Box2D body for the player.
@@ -71,6 +87,61 @@ public class Player implements Drawable {
      * @param frameTime the time since the last frame.
      */
     public void tick(float frameTime) {
+           //if D key is pressed
+        boolean dPressed = Gdx.input.isKeyPressed(Input.Keys.D);
+        
+        if (dPressed && !isHitting) {
+            isHitting = true;
+            hittingTime = 0f;
+        }
+        
+        if (isHitting) {
+            // if D key not pressed - cancel the hit
+            if (!dPressed) {
+                isHitting = false;
+                hittingTime = 0f;
+            } else {
+                //continue hitting
+                hittingTime += frameTime;
+                
+                // no player movement while hitting
+                this.hitbox.setLinearVelocity(0, 0);
+                
+                if (hittingTime >= HITTING_DURATION) {
+                    float targetX = getX();
+                    float targetY = getY();
+                  
+                    //get target position based on player direction
+                    switch (currentDirection) {
+                        case UP:
+                            targetY += 1;
+                            break;
+                        case DOWN:
+                            targetY -= 1;
+                            break;
+                        case LEFT:
+                            targetX -= 1;
+                            break;
+                        case RIGHT:
+                            targetX += 1;
+                            break;
+                    }
+                    
+                    if (hitCallback != null) {
+                        hitCallback.onHitComplete(targetX, targetY, currentDirection);
+                    }
+                    
+                    // resets hitting state
+                    isHitting = false;
+                    hittingTime = 0f;
+                }
+                
+                return;
+            }
+        }
+        
+
+
         //check arrow keys for input
         boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT);
         boolean rightPressed = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
