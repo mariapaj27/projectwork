@@ -54,6 +54,7 @@ public class Debris implements Drawable {
             body = null;
         }
     }
+
     @Override
     public TextureRegion getCurrentAppearance() {
         // the texture of the debris

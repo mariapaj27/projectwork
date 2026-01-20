@@ -77,6 +77,7 @@ public class Animations {
     /**
      * The animation for the character attacking right.
      */
+
     public static final Animation<TextureRegion> CHARACTER_ATTACK_RIGHT = new Animation<>(0.1f,
             SpriteSheet.CHARACTER.at(2, 6),
             SpriteSheet.CHARACTER.at(2, 7),
