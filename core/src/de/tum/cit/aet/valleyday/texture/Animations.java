@@ -49,5 +49,40 @@ public class Animations {
             SpriteSheet.CHARACTER.at(3, 3),
             SpriteSheet.CHARACTER.at(3, 4)
     );
-    
+
+    /**
+     * The animation for the character attacking up.
+     */
+    public static final Animation<TextureRegion> CHARACTER_ATTACK_UP = new Animation<>(0.1f,
+            SpriteSheet.CHARACTER.at(3, 6),
+            SpriteSheet.CHARACTER.at(3, 7),
+            SpriteSheet.CHARACTER.at(3, 8)
+    );
+    /**
+     * The animation for the character attacking down.
+     */
+    public static final Animation<TextureRegion> CHARACTER_ATTACK_DOWN = new Animation<>(0.1f,
+            SpriteSheet.CHARACTER.at(1, 6),
+            SpriteSheet.CHARACTER.at(1, 7),
+            SpriteSheet.CHARACTER.at(1, 8)
+    );
+    /**
+     * The animation for the character attacking left.
+     */
+    public static final Animation<TextureRegion> CHARACTER_ATTACK_LEFT = new Animation<>(0.1f,
+            SpriteSheet.CHARACTER.at(4, 6),
+            SpriteSheet.CHARACTER.at(4, 7),
+            SpriteSheet.CHARACTER.at(4, 8)
+    );
+    /**
+     * The animation for the character attacking right.
+     */
+    public static final Animation<TextureRegion> CHARACTER_ATTACK_RIGHT = new Animation<>(0.1f,
+            SpriteSheet.CHARACTER.at(2, 6),
+            SpriteSheet.CHARACTER.at(2, 7),
+            SpriteSheet.CHARACTER.at(2, 8)
+    );
+
+
+
 }

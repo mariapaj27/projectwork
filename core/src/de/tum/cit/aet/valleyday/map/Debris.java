@@ -12,6 +12,9 @@ public class Debris implements Drawable {
     
     private final float x;
     private final float y;
+    //added world state
+    private Body body;
+    private final World world;
     
     /**
      * Creates debris at a given position.
@@ -22,6 +25,7 @@ public class Debris implements Drawable {
     public Debris(World world, float x, float y) {
         this.x = x;
         this.y = y;
+        this.world = world;
         createHitbox(world);
     }
     
@@ -39,10 +43,17 @@ public class Debris implements Drawable {
         box.setAsBox(0.5f, 0.5f);
         body.createFixture(box, 1.0f);
         box.dispose();
-        
         body.setUserData(this);
     }
-    
+    /**
+     * Destroys debris from the game.
+     */
+    public void destroy() {
+        if (body != null) {
+            world.destroyBody(body);
+            body = null;
+        }
+    }
     @Override
     public TextureRegion getCurrentAppearance() {
         // the texture of the debris
