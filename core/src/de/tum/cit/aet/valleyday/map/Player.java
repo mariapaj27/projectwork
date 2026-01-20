@@ -139,8 +139,6 @@ public class Player implements Drawable {
                 return;
             }
         }
-        
-
 
         //check arrow keys for input
         boolean leftPressed = Gdx.input.isKeyPressed(Input.Keys.LEFT);
@@ -185,15 +183,31 @@ public class Player implements Drawable {
 
         this.hitbox.setLinearVelocity(xVelocity, yVelocity);
     }
-    
+
+    public Direction getCurrentDirection() {
+        return currentDirection;
+    }
+    public boolean isHitting() {
+        return isHitting;
+    }
+
     @Override
     public TextureRegion getCurrentAppearance() {
-        // movement animation that corresponds to the current direction.
-        Animation<TextureRegion> animation = switch (currentDirection) {
+        // chooses attack animation
+        animation = switch (currentDirection) {
+            case UP -> Animations.CHARACTER_ATTACK_UP;
+            case LEFT -> Animations.CHARACTER_ATTACK_LEFT;
+            case RIGHT -> Animations.CHARACTER_ATTACK_RIGHT;
+            case DOWN -> Animations.CHARACTER_ATTACK_DOWN;
+        };
+        return animation.getKeyFrame(hittingTime, false);
+    } else {
+        // chooses walk animation
+        animation = switch (currentDirection) {
             case UP -> Animations.CHARACTER_WALK_UP;
             case LEFT -> Animations.CHARACTER_WALK_LEFT;
             case RIGHT -> Animations.CHARACTER_WALK_RIGHT;
-            default -> Animations.CHARACTER_WALK_DOWN;
+            case DOWN -> Animations.CHARACTER_WALK_DOWN;
         };
         return animation.getKeyFrame(this.elapsedTime, true);    }
     

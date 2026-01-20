@@ -82,6 +82,7 @@ public class GameMap {
 
         // creates player at entrance position
         this.player = new Player(this.world, mapData.entranceX, mapData.entranceY);
+        this.player.setHitCallback(this::onPlayerHit);
 
         // creates objects based on map data
         for (MapLoader.MapObject obj : mapData.objects) {
@@ -253,5 +254,30 @@ public class GameMap {
 
     public List<Grass> getGrass() {
         return grass;
+    }
+    /**
+     * Called after a completed hit action.If debris exists-destroy it.
+     * @param targetX The X coordinate of the target.
+     * @param targetY The Y coordinate of the target.
+     * @param direction The direction of the player.
+     */
+    private void onPlayerHit(float targetX, float targetY, Player.Direction direction) {
+        // finds debris
+        Debris toRemove = null;
+        for (Debris d : debris) {
+            float dx = Math.abs(d.getX() - targetX);
+            float dy = Math.abs(d.getY() - targetY);
+
+            //checks distance to target
+            if (dx < 0.5f && dy < 0.5f) {
+                toRemove = d;
+                break;
+            }
+        }
+        //removes debris
+        if (toRemove != null) {
+            toRemove.destroy();
+            debris.remove(toRemove); // removes from debris list
+        }
     }
 }
