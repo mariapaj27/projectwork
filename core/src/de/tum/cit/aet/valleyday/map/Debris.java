@@ -37,13 +37,13 @@ public class Debris implements Drawable {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
         bodyDef.position.set(this.x, this.y);
-        Body body = world.createBody(bodyDef);
+        this.body = world.createBody(bodyDef);
         
         PolygonShape box = new PolygonShape();
         box.setAsBox(0.5f, 0.5f);
-        body.createFixture(box, 1.0f);
+        this.body.createFixture(box, 1.0f);
         box.dispose();
-        body.setUserData(this);
+       this.body.setUserData(this);
     }
     /**
      * Destroys debris from the game.

@@ -51,6 +51,8 @@ public class Hud {
         spriteBatch.begin();
        // draws box in top-left corner
         drawStatisticsPanel();
+        // draw  hint if player is near shovel
+        drawPickupHint();
         // Draw the HUD elements
         font.draw(spriteBatch, "Press Esc to Pause!", 10, Gdx.graphics.getHeight() - 10);
         // Finish drawing
@@ -70,13 +72,18 @@ public class Hud {
      
     private void drawStatisticsPanel() {
         int panelX = 10;
-        int panelY = Gdx.graphics.getHeight() - 180;
-        int panelWidth = 150;
-        int panelHeight = 175;
+        int panelWidth = 200;
         int padding = 12;
         int iconSize = 26;
         int lineHeight = 32;
-        
+
+        // dynamic height of panel
+        int contentLines = 2; // timer + debris
+        if (map.hasShovel()) contentLines++; // add shovel
+        contentLines++; // exit text
+        int panelHeight = padding * 2 + iconSize * contentLines + lineHeight + 20;
+        int panelY = Gdx.graphics.getHeight() - panelHeight - 10;
+
         // draws brown background for panel
         spriteBatch.setColor(0.4f, 0.3f, 0.2f, 1f); // brown color
         spriteBatch.draw(whitePixel, panelX, panelY, panelWidth, panelHeight);
@@ -99,6 +106,16 @@ public class Hud {
         font.draw(spriteBatch, map.getFormattedTime(), panelX + padding + iconSize + 8, currentY + iconSize - 6);
         
         currentY -= lineHeight;
+
+        // draws shovel icon if player has it.
+        if (map.hasShovel()) {
+            drawShovelIcon(panelX + padding, currentY, iconSize);
+            font.setColor(0.9f, 0.8f, 0.6f, 1f);
+            font.draw(spriteBatch, "Shovel", panelX + padding + iconSize + 8, currentY + iconSize - 6);
+            currentY -= lineHeight;
+        } else {
+            currentY -= 10;
+        }
         
         // Debris icon and count
         drawDebrisIcon(panelX + padding, currentY, iconSize);
@@ -175,4 +192,57 @@ public class Hud {
     public void dispose() {
         whitePixel.dispose();
     }
+    /**
+     * Draws a shovel icon.
+     */
+    private void drawShovelIcon(int x, int y, int size) {
+        // shovel handle
+        spriteBatch.setColor(0.45f, 0.3f, 0.2f, 1f);
+        spriteBatch.draw(whitePixel, x + size/2 - 2, y + 4, 4, size - 6);
+
+        //main of the shovel
+        spriteBatch.setColor(0.6f, 0.6f, 0.6f, 1f);
+        spriteBatch.draw(whitePixel, x + size/2 - 4, y, 8, 6);
+
+        spriteBatch.setColor(Color.WHITE);
+    }
+
+    /**
+     * Draws hint when player is near a shovel.
+     */
+    private void drawPickupHint() {
+        // Check if shovel nearby
+        if (map.getNearestShovel() != null && !map.hasShovel()) {
+            // hint body
+            String hintText = "Press 'E' to take the shovel";
+            float textWidth = font.getData().getGlyph('E').width * hintText.length() * 1f;
+            float x = (Gdx.graphics.getWidth() - textWidth) / 2;
+            float y = 120;
+
+            // draws hint background
+            int bgWidth = (int) (textWidth + 24);
+            int bgHeight = 36;
+            int bgX = (int) (x - 12);
+            int bgY = (int) (y - 28);
+
+            spriteBatch.setColor(0.4f, 0.3f, 0.2f, 0.95f); //brown color
+            spriteBatch.draw(whitePixel, bgX, bgY, bgWidth, bgHeight);
+
+            // draws hint boarder
+            spriteBatch.setColor(0.5f, 0.4f, 0.3f, 1f);
+            int borderWidth = 2;
+            spriteBatch.draw(whitePixel, bgX, bgY, bgWidth, borderWidth); // Bottom
+            spriteBatch.draw(whitePixel, bgX, bgY + bgHeight - borderWidth, bgWidth, borderWidth); // Top
+            spriteBatch.draw(whitePixel, bgX, bgY, borderWidth, bgHeight); // Left
+            spriteBatch.draw(whitePixel, bgX + bgWidth - borderWidth, bgY, borderWidth, bgHeight); // Right
+
+            // draws hint text
+            font.setColor(0.9f, 0.8f, 0.6f, 1f);
+            font.draw(spriteBatch, hintText, x, y);
+
+            spriteBatch.setColor(Color.WHITE);
+            font.setColor(Color.WHITE);
+        }
+    }
+
 }

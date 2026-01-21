@@ -298,6 +298,7 @@ public class GameMap {
         if (toRemove != null) {
             toRemove.destroy();
             debris.remove(toRemove); // removes from debris list
+            debrisCollected++;
         }
     }
     //getters
