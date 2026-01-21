@@ -46,7 +46,7 @@ public class Exit implements Drawable {
     @Override
     public TextureRegion getCurrentAppearance() {
         // texture of the exit(door)
-        return SpriteSheet.BASIC_TILES.at(4, 1);
+        return SpriteSheet.BASIC_TILES.at(7, 1);
     }
     
     @Override

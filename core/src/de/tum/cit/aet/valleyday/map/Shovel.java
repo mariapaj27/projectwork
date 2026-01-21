@@ -25,7 +25,7 @@ public class Shovel implements Drawable {
     @Override
     public TextureRegion getCurrentAppearance() {
         //  texture of the shovel
-        return SpriteSheet.BASIC_TILES.at(7, 1);
+        return SpriteSheet.BASIC_ITEMS.at(3, 7);
     }
     
     @Override
