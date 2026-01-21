@@ -43,6 +43,15 @@ public class GameMap {
     private final ValleyDayGame game;
     /** The Box2D world for physics simulation. */
     private final World world;
+
+    //BONUS darkening
+    private float daylightTimeRemaining = 300f;
+    private static final float MAX_DAYLIGHT_TIME = 300f;
+    /** Time when darkness starts */
+    private static final float DARKNESS_THRESHOLD = 90f;
+    private int debrisCollected = 0;
+    private static final int MIN_DEBRIS_REQUIRED = 6;
+    private boolean paused = false;
     
     // Game objects
     private final Player player;
@@ -159,8 +168,17 @@ public class GameMap {
      * @param frameTime the time that has passed since the last update
      */
     public void tick(float frameTime) {
-        this.player.tick(frameTime);
-        doPhysicsStep(frameTime);
+        //updated tick
+        if (!paused) {
+            this.player.tick(frameTime);
+            doPhysicsStep(frameTime);
+
+            // updates daylight timer
+            daylightTimeRemaining -= frameTime;
+            if (daylightTimeRemaining < 0) {
+                daylightTimeRemaining = 0;
+            }
+        }
     }
     
     /**
@@ -280,4 +298,56 @@ public class GameMap {
             debris.remove(toRemove); // removes from debris list
         }
     }
+    //getters
+    public float getDaylightTimeRemaining() {
+        return daylightTimeRemaining;
+    }
+
+    public String getFormattedTime() {
+        int minutes = (int) (daylightTimeRemaining / 60);
+        int seconds = (int) (daylightTimeRemaining % 60);
+        return String.format("%d:%02d", minutes, seconds);
+    }
+
+    public int getDebrisCollected() {
+        return debrisCollected;
+    }
+
+    public int getMinDebrisRequired() {
+        return MIN_DEBRIS_REQUIRED;
+    }
+
+    //BONUS darkenning
+    /**
+     * Returns the darkness level based on remaining time.
+     * Darkness increases, then stays at max
+     * @return Darkness level between 0.0 and 0.7
+     */
+    public float getDarknessLevel() {
+        if (daylightTimeRemaining <= DARKNESS_THRESHOLD) {
+            return 0.7f;
+        } else {
+            // gradual darkening
+            // calculates how much time passed
+            float timeRange = MAX_DAYLIGHT_TIME - DARKNESS_THRESHOLD;
+            float timeElapsed = MAX_DAYLIGHT_TIME - daylightTimeRemaining;
+            float progress = timeElapsed / timeRange;
+
+            // returns darkness level
+            return 0.7f * progress;
+        }
+    }
+
+    public void setPaused(boolean paused) {
+        this.paused = paused;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+    //checks if u can exit
+    public boolean canExit() {
+        return debrisCollected >= MIN_DEBRIS_REQUIRED;
+    }
+
 }

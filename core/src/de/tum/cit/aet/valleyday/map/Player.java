@@ -193,23 +193,31 @@ public class Player implements Drawable {
 
     @Override
     public TextureRegion getCurrentAppearance() {
-        // chooses attack animation
-        animation = switch (currentDirection) {
-            case UP -> Animations.CHARACTER_ATTACK_UP;
-            case LEFT -> Animations.CHARACTER_ATTACK_LEFT;
-            case RIGHT -> Animations.CHARACTER_ATTACK_RIGHT;
-            case DOWN -> Animations.CHARACTER_ATTACK_DOWN;
-        };
-        return animation.getKeyFrame(hittingTime, false);
-    } else {
-        // chooses walk animation
-        animation = switch (currentDirection) {
-            case UP -> Animations.CHARACTER_WALK_UP;
-            case LEFT -> Animations.CHARACTER_WALK_LEFT;
-            case RIGHT -> Animations.CHARACTER_WALK_RIGHT;
-            case DOWN -> Animations.CHARACTER_WALK_DOWN;
-        };
-        return animation.getKeyFrame(this.elapsedTime, true);    }
+        // chooses animation based on player's action
+        Animation<TextureRegion> animation;
+
+        if (isHitting) {
+            // chooses attack animation
+            animation = switch (currentDirection) {
+                case UP -> Animations.CHARACTER_ATTACK_UP;
+                case LEFT -> Animations.CHARACTER_ATTACK_LEFT;
+                case RIGHT -> Animations.CHARACTER_ATTACK_RIGHT;
+                case DOWN -> Animations.CHARACTER_ATTACK_DOWN;
+            };
+            return animation.getKeyFrame(hittingTime, false);
+        } else {
+            // chooses walk animation
+            animation = switch (currentDirection) {
+                case UP -> Animations.CHARACTER_WALK_UP;
+                case LEFT -> Animations.CHARACTER_WALK_LEFT;
+                case RIGHT -> Animations.CHARACTER_WALK_RIGHT;
+                case DOWN -> Animations.CHARACTER_WALK_DOWN;
+            };
+            return animation.getKeyFrame(this.elapsedTime, true);
+        }
+
+    }
+
     
     @Override
     public float getX() {
@@ -226,7 +234,12 @@ public class Player implements Drawable {
     /**
      * Enum of movement directions for the player.
      */
-    private enum Direction {
+    public enum Direction {
         UP, DOWN, LEFT, RIGHT
     }
+
+    public void setHitCallback(HitCallback hitCallback) {
+        this.hitCallback = hitCallback;
+    }
+
 }

@@ -5,9 +5,18 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import de.tum.cit.aet.valleyday.ValleyDayGame;
 import de.tum.cit.aet.valleyday.map.Flowers;
 import de.tum.cit.aet.valleyday.texture.Drawable;
@@ -38,6 +47,12 @@ public class GameScreen implements Screen {
     private final GameMap map;
     private final Hud hud;
     private final OrthographicCamera mapCamera;
+    private final OrthographicCamera overlayCamera;
+    //darkness effect
+    private final Texture whitePixel;
+    //pause menu
+    private final Stage pauseMenuStage;
+    private boolean showPauseMenu = false;
 
     /**
      * Constructor for GameScreen. Sets up the camera and font.
@@ -52,6 +67,20 @@ public class GameScreen implements Screen {
         // Create and configure the camera for the game view
         this.mapCamera = new OrthographicCamera();
         this.mapCamera.setToOrtho(false);
+        //added
+        // camera for darkness overlay
+        this.overlayCamera = new OrthographicCamera();
+        this.overlayCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        //darkness texture
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(Color.WHITE);
+        pixmap.fill();
+        this.whitePixel = new Texture(pixmap);
+        pixmap.dispose();
+
+        //pause menu
+        this.pauseMenuStage = new Stage(new ScreenViewport());
+        createPauseMenu();
     }
     
     /**
@@ -60,8 +89,9 @@ public class GameScreen implements Screen {
      */
     @Override
     public void render(float deltaTime) {
-        // Check for escape key press to go back to the menu
+        // if escape key pressed open pause menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            togglePauseMenu();
             game.goToMenu();
         }
         
@@ -79,9 +109,17 @@ public class GameScreen implements Screen {
         
         // Render the map on the screen
         renderMap();
+        // renders darkness
+        renderDarkness();
         
         // Render the HUD on the screen
         hud.render();
+        // renders pause menu
+        if (showPauseMenu) {
+            renderPauseMenuOverlay(); //pause background(little grey)
+            pauseMenuStage.act(Math.min(deltaTime, 1 / 30f)); // time of appearance
+            pauseMenuStage.draw(); //draws menu
+        }
     }
 
       /**
@@ -142,6 +180,97 @@ public class GameScreen implements Screen {
         float height = texture.getRegionHeight() * SCALE;
         spriteBatch.draw(texture, x, y, width, height);
     }
+    /**
+     * Renders darkness overlay based on remaining daylight time.
+     */
+    private void renderDarkness() {
+        float darkness = map.getDarknessLevel();
+        if (darkness > 0) {
+            // full-screen covered
+            spriteBatch.setProjectionMatrix(overlayCamera.combined);
+            spriteBatch.begin();
+
+            // draws darkness
+            spriteBatch.setColor(0, 0, 0, darkness);
+            spriteBatch.draw(whitePixel, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+            //resets transparency to white for next render
+            spriteBatch.setColor(Color.WHITE);
+            spriteBatch.end();
+        }
+    }
+
+    /**
+     * Gray overlay when pause menu opened.
+     */
+    private void renderPauseMenuOverlay() {
+        spriteBatch.setProjectionMatrix(overlayCamera.combined);
+        spriteBatch.begin();
+
+        // draw background
+        spriteBatch.setColor(0.2f, 0.2f, 0.2f, 0.7f);
+        //draws overlay
+        spriteBatch.draw(whitePixel, 0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        // resets color to white
+        spriteBatch.setColor(Color.WHITE);
+        spriteBatch.end();
+    }
+
+    /**
+     * Creates the pause menu buttons.
+     */
+    private void createPauseMenu() {
+        //for structure
+        Table table = new Table();
+        table.setFillParent(true);
+
+        // Menu title
+        Label titleLabel = new Label("GAME PAUSED", game.getSkin());
+        titleLabel.setFontScale(2.0f);// text size
+
+        // Resume button
+        TextButton resumeButton = new TextButton("Resume", game.getSkin());
+        resumeButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                togglePauseMenu();
+            }
+        });
+
+        // Back to Title button
+        TextButton backButton = new TextButton("Back to Title", game.getSkin());
+        backButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showPauseMenu = false;
+                map.setPaused(false);
+                game.goToMenu();
+            }
+        });
+
+        // added to menu table
+        table.add(titleLabel).padBottom(40).row();
+        table.add(resumeButton).width(200).height(50).padBottom(20).row();
+        table.add(backButton).width(200).height(50).row();
+
+        pauseMenuStage.addActor(table);
+    }
+
+    /**
+     * Menu actions
+     */
+    private void togglePauseMenu() {
+        showPauseMenu = !showPauseMenu;
+        map.setPaused(showPauseMenu);
+
+        // if menu buttons are clickable
+        if (showPauseMenu) {
+            Gdx.input.setInputProcessor(pauseMenuStage);
+        } else {
+            Gdx.input.setInputProcessor(null);
+        }
+    }
     
     /**
      * Called when the window is resized.
@@ -152,7 +281,9 @@ public class GameScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         mapCamera.setToOrtho(false);
+        overlayCamera.setToOrtho(false, width, height);// darkness on full screen
         hud.resize(width, height);
+        pauseMenuStage.getViewport().update(width, height, true);// proper pause menu on resizing
     }
 
     // Unused methods from the Screen interface
@@ -172,7 +303,6 @@ public class GameScreen implements Screen {
     @Override
     public void hide() {
     }
-
     @Override
     public void dispose() {
     }
