@@ -70,6 +70,8 @@ public class GameMap {
     private final List<Shovel> shovels;
     private final List<Grass> grass;
 
+    private boolean hasShovel = false;
+
     /**
      * Constructor that loads map from MapLoader data.
      * @param game The game instance.
@@ -348,6 +350,86 @@ public class GameMap {
     //checks if u can exit
     public boolean canExit() {
         return debrisCollected >= MIN_DEBRIS_REQUIRED;
+    }
+
+    /**
+     * Returns if the player has the shovel.
+     * @return True if player has shovel, false if not.
+     */
+    public boolean hasShovel() {
+        return hasShovel;
+    }
+    
+    /**
+     * Tries to pick up a shovel infront of the player
+     * when player presses E key.
+     * @return True if a shovel was picked up, false if not.
+     */
+    public boolean tryPickupShovel() {
+        if (hasShovel) return false; // if already has shovel
+
+        //where is player
+        float playerX = player.getX();
+        float playerY = player.getY();
+        
+        // Find shovel next to player (within 1.5)
+        Shovel toRemove = null;
+        for (Shovel shovel : shovels) {
+	// distance to the shovel
+            float dx = Math.abs(shovel.getX() - playerX);
+            float dy = Math.abs(shovel.getY() - playerY);
+            //picks what shovel to remove
+            if (dx < 1.5f && dy < 1.5f) {
+                toRemove = shovel;
+                break;
+            }
+        }
+        //shovel found
+        if (toRemove != null) {
+            shovels.remove(toRemove);
+            hasShovel = true;
+            player.setShovelEquipped(true); // equipped true
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Returns the nearest shovel to the player if facing it.
+     * @return Nearest shovel or null if none nearby.
+     */
+    public Shovel getNearestShovel() {
+        if (hasShovel) return null; // already has shovel
+
+        ///player coordinates
+        float playerX = player.getX();
+        float playerY = player.getY();
+        Player.Direction playerDir = player.getCurrentDirection(); //direction of player
+        
+        // check if player facing a shovel 
+        for (Shovel shovel : shovels) {
+            float dx = shovel.getX() - playerX;
+            float dy = shovel.getY() - playerY;
+            float distance = (float) Math.sqrt(dx * dx + dy * dy); //distance to shovel
+            
+            if (distance < 1.5f) {
+               boolean facing = false;
+                // check if player facing the shovel
+                switch (playerDir) {
+                    case UP: facing = dy > 0 && Math.abs(dy) > Math.abs(dx); break;
+                    case DOWN: facing = dy < 0 && Math.abs(dy) > Math.abs(dx); break;
+                    case LEFT: facing = dx < 0 && Math.abs(dx) > Math.abs(dy); break;
+                    case RIGHT: facing = dx > 0 && Math.abs(dx) > Math.abs(dy); break;
+                }
+                
+                if (facing) {
+                    return shovel;
+                }
+            }
+        }
+        
+        return null;
     }
 
 }
