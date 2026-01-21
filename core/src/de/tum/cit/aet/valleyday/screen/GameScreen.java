@@ -92,7 +92,6 @@ public class GameScreen implements Screen {
         // if escape key pressed open pause menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePauseMenu();
-            game.goToMenu();
         }
         
         // Clear the previous frame from the screen, or else the picture smears

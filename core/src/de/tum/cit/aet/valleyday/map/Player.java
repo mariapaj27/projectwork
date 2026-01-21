@@ -31,23 +31,31 @@ public class Player implements Drawable {
 
     private boolean isHitting = false;
     private float hittingTime = 0f;
-    private static final float HITTING_DURATION = 1.0f;
-
+    private static final float BASE_HITTING_DURATION = 1.0f;
+    private static final float SHOVEL_HITTING_DURATION = 0.5f;
     //Action after hitting completed
     private HitCallback hitCallback;
-
+    private boolean hasShovel = false;
     /**
      * Interface for hit callback.
      */
     public interface HitCallback {
         void onHitComplete(float targetX, float targetY, Direction direction);
     }
-
+    /**
+     * Gets the current hitting duration based on if player has shovel.
+     * @return Hitting duration in seconds.
+     */
+    private float getHittingDuration() {
+        return hasShovel ? SHOVEL_HITTING_DURATION : BASE_HITTING_DURATION;
+    }
     public Player(World world, float x, float y) {
         this.hitbox = createHitbox(world, x, y);
     }
 
-
+    public void setShovelEquipped(boolean equipped) {
+        this.hasShovel = equipped;
+    }
     
     /**
      * Creates a Box2D body for the player.
@@ -106,8 +114,9 @@ public class Player implements Drawable {
                 
                 // no player movement while hitting
                 this.hitbox.setLinearVelocity(0, 0);
-                
-                if (hittingTime >= HITTING_DURATION) {
+
+                float hitDuration = getHittingDuration();
+                if (hittingTime >= hitDuration)  {
                     float targetX = getX();
                     float targetY = getY();
                   
