@@ -1,9 +1,13 @@
 package de.tum.cit.aet.valleyday.screen;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import de.tum.cit.aet.valleyday.map.GameMap;
 
 /**
  * A Heads-Up Display (HUD) that displays information on the screen.
@@ -17,11 +21,23 @@ public class Hud {
     private final BitmapFont font;
     /** The camera used to render the HUD. */
     private final OrthographicCamera camera;
+    private final GameMap map;
+     /** Box for timer/collected items */
+    private final Texture whitePixel;
+
     
-    public Hud(SpriteBatch spriteBatch, BitmapFont font) {
+   public Hud(SpriteBatch spriteBatch, BitmapFont font, GameMap map) {
         this.spriteBatch = spriteBatch;
         this.font = font;
         this.camera = new OrthographicCamera();
+        this.map = map;
+        
+        // Creates texture for box
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(Color.WHITE);
+        pixmap.fill();
+        this.whitePixel = new Texture(pixmap);
+        pixmap.dispose();
     }
     
     /**
@@ -33,12 +49,13 @@ public class Hud {
         spriteBatch.setProjectionMatrix(camera.combined);
         // Start drawing
         spriteBatch.begin();
+       // draws box in top-left corner
+        drawStatisticsPanel();
         // Draw the HUD elements
         font.draw(spriteBatch, "Press Esc to Pause!", 10, Gdx.graphics.getHeight() - 10);
         // Finish drawing
         spriteBatch.end();
-    }
-    
+}
     /**
      * Resizes the HUD when the screen size changes.
      * This is called when the window is resized.
@@ -49,4 +66,113 @@ public class Hud {
         camera.setToOrtho(false, width, height);
     }
     
+    //*  Draws box with timer, debris, and exit status.
+     
+    private void drawStatisticsPanel() {
+        int panelX = 10;
+        int panelY = Gdx.graphics.getHeight() - 180;
+        int panelWidth = 150;
+        int panelHeight = 175;
+        int padding = 12;
+        int iconSize = 26;
+        int lineHeight = 32;
+        
+        // draws brown background for panel
+        spriteBatch.setColor(0.4f, 0.3f, 0.2f, 1f); // brown color
+        spriteBatch.draw(whitePixel, panelX, panelY, panelWidth, panelHeight);
+        
+        // borders lighter
+        spriteBatch.setColor(0.5f, 0.4f, 0.3f, 1f);
+        int borderWidth = 1;
+        spriteBatch.draw(whitePixel, panelX, panelY, panelWidth, borderWidth); 
+        spriteBatch.draw(whitePixel, panelX, panelY + panelHeight - borderWidth, panelWidth, borderWidth); 
+        spriteBatch.draw(whitePixel, panelX, panelY, borderWidth, panelHeight); 
+        spriteBatch.draw(whitePixel, panelX + panelWidth - borderWidth, panelY, borderWidth, panelHeight); 
+        
+        spriteBatch.setColor(Color.WHITE);
+        
+        int currentY = panelY + panelHeight - padding - iconSize;
+        
+        // Timer
+        drawTimerIcon(panelX + padding, currentY, iconSize);
+        font.setColor(0.9f, 0.8f, 0.6f, 1f);
+        font.draw(spriteBatch, map.getFormattedTime(), panelX + padding + iconSize + 8, currentY + iconSize - 6);
+        
+        currentY -= lineHeight;
+        
+        // Debris icon and count
+        drawDebrisIcon(panelX + padding, currentY, iconSize);
+        font.setColor(0.9f, 0.8f, 0.6f, 1f);
+        String debrisText = map.getDebrisCollected() + "/" + map.getMinDebrisRequired();
+        font.draw(spriteBatch, debrisText, panelX + padding + iconSize + 8, currentY + iconSize - 6);
+        
+        currentY -= lineHeight + 10;
+        
+        // exit status 
+        boolean canExit = map.canExit();
+        if (canExit) {
+            font.setColor(0.3f, 0.8f, 0.3f, 1f);
+        } else {
+            font.setColor(0.8f, 0.2f, 0.2f, 1f); 
+        }
+        
+        //draws exit centered
+        String exitText = "EXIT";
+        float exitWidth = font.getData().getGlyph(exitText.charAt(0)).width * exitText.length() * 1.2f;
+        float exitX = panelX + (panelWidth - exitWidth) / 2;
+        font.getData().setScale(1.5f); 
+        font.draw(spriteBatch, exitText, exitX, currentY + 20);
+        font.getData().setScale(1.0f); 
+        
+        spriteBatch.setColor(Color.WHITE);
+        font.setColor(Color.WHITE);
+    }
+    
+    /**
+     * draws timer icon.
+     */
+    private void drawTimerIcon(int x, int y, int size) {
+        //drawdclock background
+        spriteBatch.setColor(0.8f, 0.7f, 0.3f, 1f);
+        drawCircle(x + size/2, y + size/2, size/2);
+        
+        //draws clock arrow
+        spriteBatch.setColor(0.3f, 0.2f, 0.1f, 1f);
+        spriteBatch.draw(whitePixel, x + size/2 - 1, y + size/2, 2, size/3);
+        
+        spriteBatch.setColor(Color.WHITE);
+    }
+    
+    /**
+     * draws a debris icon.
+     */
+    private void drawDebrisIcon(int x, int y, int size) {
+        spriteBatch.setColor(0.5f, 0.35f, 0.25f, 1f);
+        
+        // draws icon body
+        spriteBatch.draw(whitePixel, x + 2, y + 4, 8, 6);
+        spriteBatch.draw(whitePixel, x + 8, y + 10, 6, 8);
+        spriteBatch.draw(whitePixel, x + 14, y + 6, 7, 5);
+        
+        spriteBatch.setColor(Color.WHITE);
+    }
+    
+    /**
+     * Draws a filled circle for timer
+     */
+    private void drawCircle(int centerX, int centerY, int radius) {
+        for (int i = -radius; i <= radius; i++) {
+            for (int j = -radius; j <= radius; j++) {
+                if (i * i + j * j <= radius * radius) {
+                    spriteBatch.draw(whitePixel, centerX + i, centerY + j, 1, 1);
+                }
+            }
+        }
+    }
+    /**
+     * Disposes of resources.
+     */
+    public void dispose() {
+        whitePixel.dispose();
+    }
 }

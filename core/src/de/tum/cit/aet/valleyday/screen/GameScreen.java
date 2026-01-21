@@ -63,7 +63,7 @@ public class GameScreen implements Screen {
         this.game = game;
         this.spriteBatch = game.getSpriteBatch();
         this.map = game.getMap();
-        this.hud = new Hud(spriteBatch, game.getSkin().getFont("font"));
+        this.hud = new Hud(spriteBatch, game.getSkin().getFont("font"), this.map);
         // Create and configure the camera for the game view
         this.mapCamera = new OrthographicCamera();
         this.mapCamera.setToOrtho(false);
@@ -303,8 +303,12 @@ public class GameScreen implements Screen {
     @Override
     public void hide() {
     }
+    //removes not used resources
     @Override
     public void dispose() {
+    whitePixel.dispose();
+    hud.dispose();
+    pauseMenuStage.dispose();
     }
 
 }
