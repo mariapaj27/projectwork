@@ -15,6 +15,7 @@ import java.util.List;
  * Contains all the objects and entities in the game.
  */
 public class GameMap {
+
     
     // executed when the class is referenced for the first time.
     static {
@@ -69,8 +70,14 @@ public class GameMap {
     private final List<WateringCan> wateringCans;
     private final List<Shovel> shovels;
     private final List<Grass> grass;
-
     private boolean hasShovel = false;
+    /** if fertilizer spawned */
+    private boolean questFertilizerSpawned = false;
+    /** if picked up  */
+    private boolean hasFertilizer = false;
+
+    private static final int QUEST_FERTILIZER_X = 1;
+    private static final int QUEST_FERTILIZER_Y = 9;
 
     /**
      * Constructor that loads map from MapLoader data.
@@ -110,8 +117,8 @@ public class GameMap {
                 case 3: // Wildlife visitor
                     wildlifeVisitors.add(new WildlifeVisitor(obj.x, obj.y));
                     break;
-                case 5: // Fertilizer
-                    fertilizers.add(new Fertilizer(obj.x, obj.y));
+                case 5: // Fertilizer, added world
+                    fertilizers.add(new Fertilizer(world, obj.x, obj.y));
                     break;
                 case 6: // Watering Can
                     wateringCans.add(new WateringCan(obj.x, obj.y));
@@ -181,8 +188,20 @@ public class GameMap {
                 daylightTimeRemaining = 0;
             }
         }
+        //spawn fertilizer if quest completed
+        maybeSpawnQuestFertilizer();
     }
-    
+
+    private void maybeSpawnQuestFertilizer() {
+        if (questFertilizerSpawned || hasFertilizer) return;
+        if (!hasShovel) return;
+        if (debrisCollected < MIN_DEBRIS_REQUIRED) return;
+
+        // spawn fertilizer
+        fertilizers.add(new Fertilizer(world, QUEST_FERTILIZER_X, QUEST_FERTILIZER_Y));
+        questFertilizerSpawned = true;
+    }
+
     /**
      * Performs as many physics steps as necessary to catch up to the given frame time.
      * This will update the Box2D world by the given time step.
@@ -360,7 +379,61 @@ public class GameMap {
     public boolean hasShovel() {
         return hasShovel;
     }
-    
+    public boolean hasFertilizer() {
+        return hasFertilizer;
+    }
+
+    /**
+     * When E key pressed, picks up the closest item.
+     * @return true if something picked up.
+     */
+    public boolean tryInteract() {
+        if (tryPickupFertilizer()) return true;
+        return tryPickupShovel();
+    }
+
+    /**
+     * Picks up fertilizer if near the player.
+     */
+    public boolean tryPickupFertilizer() {
+        if (hasFertilizer) return false;
+        //get nearest
+        Fertilizer nearest = getNearestFertilizer();
+        if (nearest == null) return false;
+
+        // remove from world and list
+        nearest.destroy();
+        fertilizers.remove(nearest);
+        hasFertilizer = true;
+        return true;
+    }
+
+    public Fertilizer getNearestFertilizer() {
+        if (hasFertilizer) return null;
+
+        float playerX = player.getX();
+        float playerY = player.getY();
+        Player.Direction playerDir = player.getCurrentDirection();
+
+        for (Fertilizer fertilizer : fertilizers) {
+            float dx = fertilizer.getX() - playerX;
+            float dy = fertilizer.getY() - playerY;
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 1.5f) {
+                boolean facing = false;
+                switch (playerDir) {
+                    case UP: facing = dy > 0 && Math.abs(dy) > Math.abs(dx); break;
+                    case DOWN: facing = dy < 0 && Math.abs(dy) > Math.abs(dx); break;
+                    case LEFT: facing = dx < 0 && Math.abs(dx) > Math.abs(dy); break;
+                    case RIGHT: facing = dx > 0 && Math.abs(dx) > Math.abs(dy); break;
+                }
+                if (facing) return fertilizer;
+            }
+        }
+        return null;
+    }
+
     /**
      * Tries to pick up a shovel infront of the player
      * when player presses E key.

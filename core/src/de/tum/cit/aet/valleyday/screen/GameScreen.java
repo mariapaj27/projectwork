@@ -91,7 +91,7 @@ public class GameScreen implements Screen {
     public void render(float deltaTime) {
         // check if E key press to pick up the shovel 
         if (!showPauseMenu && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
-            map.tryPickupShovel();
+            map.tryInteract();
         }
         // if escape key pressed open pause menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {

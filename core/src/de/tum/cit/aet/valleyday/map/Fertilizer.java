@@ -1,40 +1,73 @@
 package de.tum.cit.aet.valleyday.map;
 
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import de.tum.cit.aet.valleyday.texture.Drawable;
 import de.tum.cit.aet.valleyday.texture.SpriteSheet;
 
 /**
- * Fertilizer is an item without a hitbox.
+ * Fertilizer Model.
  */
 public class Fertilizer implements Drawable {
-    
-    private final int x;
-    private final int y;
-    
+
+    private final float x;
+    private final float y;
+    private final World world;
+    private Body body;
+
     /**
-     * Creates fertilizer at the given position.
-     * @param x The position of x.
-     * @param y The position of y.
+     * Create fertilizer at the given position.
+     * @param world The Box2D world.
+     * @param x The X position.
+     * @param y The Y position.
      */
-    public Fertilizer(int x, int y) {
+    public Fertilizer(World world, float x, float y) {
+        this.world = world;
         this.x = x;
         this.y = y;
+        this.body = createHitbox(world, x, y);
     }
-    
+
     @Override
     public TextureRegion getCurrentAppearance() {
-        // texture of the fertilizer
-        return SpriteSheet.BASIC_TILES.at(5, 1);
+        return SpriteSheet.BASIC_TILES.at(4, 4);
     }
-    
+
+    /**
+     * Destroys fertilizer body.
+     */
+    public void destroy() {
+        if (body != null) {
+            world.destroyBody(body);
+            body = null;
+        }
+    }
+
     @Override
     public float getX() {
         return x;
     }
-    
+
     @Override
     public float getY() {
         return y;
+    }
+
+    private static Body createHitbox(World world, float x, float y) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.StaticBody;
+        bodyDef.position.set(x, y);
+
+        Body body = world.createBody(bodyDef);
+
+        PolygonShape box = new PolygonShape();
+        box.setAsBox(0.5f, 0.5f);
+        body.createFixture(box, 1.0f);
+        box.dispose();
+
+        return body;
     }
 }

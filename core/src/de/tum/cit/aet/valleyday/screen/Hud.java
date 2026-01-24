@@ -80,12 +80,13 @@ public class Hud {
         // dynamic height of panel
         int contentLines = 2; // timer + debris
         if (map.hasShovel()) contentLines++; // add shovel
+        if (map.hasFertilizer()) contentLines++; // add fertilizer
         contentLines++; // exit text
         int panelHeight = padding * 2 + iconSize * contentLines + lineHeight + 20;
         int panelY = Gdx.graphics.getHeight() - panelHeight - 10;
 
         // draws brown background for panel
-        spriteBatch.setColor(0.4f, 0.3f, 0.2f, 1f); // brown color
+        spriteBatch.setColor(0.7f, 0.5f, 0.3f, 1f); // brown color
         spriteBatch.draw(whitePixel, panelX, panelY, panelWidth, panelHeight);
         
         // borders lighter
@@ -116,7 +117,14 @@ public class Hud {
         } else {
             currentY -= 10;
         }
-        
+        // draws fertilizer icon if player has it.
+        if (map.hasFertilizer()) {
+            drawFertilizerIcon(panelX + padding, currentY, iconSize);
+            font.setColor(0.9f, 0.8f, 0.6f, 1f);
+            font.draw(spriteBatch, "Fertilizer", panelX + padding + iconSize + 8, currentY + iconSize - 6);
+            currentY -= lineHeight;
+        }
+
         // Debris icon and count
         drawDebrisIcon(panelX + padding, currentY, iconSize);
         font.setColor(0.9f, 0.8f, 0.6f, 1f);
@@ -206,43 +214,68 @@ public class Hud {
 
         spriteBatch.setColor(Color.WHITE);
     }
+    /**
+     * Draws a fertilizer icon.
+     */
+    private void drawFertilizerIcon(int x, int y, int size) {
+        // draws the bag
+        spriteBatch.setColor(0.75f, 0.65f, 0.45f, 1f);
+        spriteBatch.draw(whitePixel, x + 4, y + 3, size - 8, size - 6);
+
+        // the top
+        spriteBatch.setColor(0.6f, 0.5f, 0.35f, 1f);
+        spriteBatch.draw(whitePixel, x + 6, y + size - 9, size - 12, 4);
+
+        // body
+        spriteBatch.setColor(0.3f, 0.7f, 0.3f, 1f);
+        spriteBatch.draw(whitePixel, x + size/2 - 2, y + size/2 - 2, 4, 4);
+
+        spriteBatch.setColor(Color.WHITE);
+    }
 
     /**
-     * Draws hint when player is near a shovel.
+     * Draws hint when player is near a shovel/fertilizer.
      */
     private void drawPickupHint() {
-        // Check if shovel nearby
-        if (map.getNearestShovel() != null && !map.hasShovel()) {
-            // hint body
-            String hintText = "Press 'E' to take the shovel";
-            float textWidth = font.getData().getGlyph('E').width * hintText.length() * 1f;
-            float x = (Gdx.graphics.getWidth() - textWidth) / 2;
-            float y = 120;
-
-            // draws hint background
-            int bgWidth = (int) (textWidth + 24);
-            int bgHeight = 36;
-            int bgX = (int) (x - 12);
-            int bgY = (int) (y - 28);
-
-            spriteBatch.setColor(0.4f, 0.3f, 0.2f, 0.95f); //brown color
-            spriteBatch.draw(whitePixel, bgX, bgY, bgWidth, bgHeight);
-
-            // draws hint boarder
-            spriteBatch.setColor(0.5f, 0.4f, 0.3f, 1f);
-            int borderWidth = 2;
-            spriteBatch.draw(whitePixel, bgX, bgY, bgWidth, borderWidth); // Bottom
-            spriteBatch.draw(whitePixel, bgX, bgY + bgHeight - borderWidth, bgWidth, borderWidth); // Top
-            spriteBatch.draw(whitePixel, bgX, bgY, borderWidth, bgHeight); // Left
-            spriteBatch.draw(whitePixel, bgX + bgWidth - borderWidth, bgY, borderWidth, bgHeight); // Right
-
-            // draws hint text
-            font.setColor(0.9f, 0.8f, 0.6f, 1f);
-            font.draw(spriteBatch, hintText, x, y);
-
-            spriteBatch.setColor(Color.WHITE);
-            font.setColor(Color.WHITE);
+        if (map.getNearestFertilizer() != null && !map.hasFertilizer()) {
+            drawHint("Press 'E' to take the fertilizer");
+            return;
         }
+        if (map.getNearestShovel() != null && !map.hasShovel()) {
+            drawHint("Press 'E' to take the shovel");
+        }
+    }
+    /**
+     * Draws specific hint.
+     */
+    private void drawHint(String hintText) {
+        float textWidth = font.getData().getGlyph('E').width * hintText.length() * 1f;
+        float x = (Gdx.graphics.getWidth() - textWidth) / 2;
+        float y = 120;
+
+        int bgWidth = (int) (textWidth + 24);
+        int bgHeight = 36;
+        int bgX = (int) (x - 12);
+        int bgY = (int) (y - 28);
+
+        // draws background
+        spriteBatch.setColor(0.4f, 0.3f, 0.2f, 0.95f);
+        spriteBatch.draw(whitePixel, bgX, bgY, bgWidth, bgHeight);
+
+        // draws border
+        spriteBatch.setColor(0.5f, 0.4f, 0.3f, 1f);
+        int borderWidth = 2;
+        spriteBatch.draw(whitePixel, bgX, bgY, bgWidth, borderWidth);
+        spriteBatch.draw(whitePixel, bgX, bgY + bgHeight - borderWidth, bgWidth, borderWidth);
+        spriteBatch.draw(whitePixel, bgX, bgY, borderWidth, bgHeight);
+        spriteBatch.draw(whitePixel, bgX + bgWidth - borderWidth, bgY, borderWidth, bgHeight);
+
+        // draws text
+        font.setColor(0.9f, 0.8f, 0.6f, 1f);
+        font.draw(spriteBatch, hintText, x, y);
+
+        spriteBatch.setColor(Color.WHITE);
+        font.setColor(Color.WHITE);
     }
 
 }
