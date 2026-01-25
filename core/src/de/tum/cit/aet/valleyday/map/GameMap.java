@@ -92,6 +92,9 @@ public class GameMap {
     private static final int QUEST_FERTILIZER_X = 1;
     private static final int QUEST_FERTILIZER_Y = 9;
 
+    private boolean hasWateringCan = false;
+    private float[] hiddenWateringCanDebrisPos = null;
+
     /**
      * Constructor that loads map from MapLoader data.
      * @param game The game instance.
@@ -138,7 +141,7 @@ public class GameMap {
                     fertilizers.add(new Fertilizer(world, obj.x, obj.y));
                     break;
                 case 6: // Watering Can
-                    wateringCans.add(new WateringCan(obj.x, obj.y));
+                    wateringCans.add(new WateringCan(world, obj.x, obj.y));
                     break;
                 case 7: // Shovel
                     shovels.add(new Shovel(obj.x, obj.y));
@@ -153,6 +156,8 @@ public class GameMap {
                 grass.add(new Grass(x, y));
             }
         }
+        // hides water can under a random debris
+        hideWateringCanBehindRandomDebris();
 
         this.chest = null;
         this.flowers = null;
@@ -335,6 +340,16 @@ public class GameMap {
         }
         //removes debris
         if (toRemove != null) {
+            float debrisX = toRemove.getX();
+            float debrisY = toRemove.getY();
+            // checks if debris had a hidden watering can
+            if (hiddenWateringCanDebrisPos != null &&
+                    Math.abs(hiddenWateringCanDebrisPos[0] - debrisX) < 0.1f &&
+                    Math.abs(hiddenWateringCanDebrisPos[1] - debrisY) < 0.1f) {
+                // spawn watering can
+                wateringCans.add(new WateringCan(world, debrisX, debrisY));
+                hiddenWateringCanDebrisPos = null; // watering can spawned
+            }
             toRemove.destroy();
             debris.remove(toRemove); // removes from debris list
             debrisCollected++;
@@ -420,12 +435,17 @@ public class GameMap {
         return hasFertilizer;
     }
 
+    public boolean hasWateringCan() {
+        return hasWateringCan;
+    }
+
     /**
      * When E key pressed, picks up the closest item.
      * @return true if something picked up.
      */
     public boolean tryInteract() {
         if (tryPickupFertilizer()) return true;
+        if (tryPickupWateringCan()) return true;
         return tryPickupShovel();
     }
 
@@ -629,6 +649,63 @@ public class GameMap {
             int y = Math.round(d.getY());
             occupied.add(pack(x, y));
         }
+    }
+    /**
+     * Hides the water can under a random debris.
+     */
+    private void hideWateringCanBehindRandomDebris() {
+        if (debris.isEmpty()) return; // no debris
+        Random rnd = new Random();
+        Debris selectedDebris = debris.get(rnd.nextInt(debris.size())); //random debris
+        hiddenWateringCanDebrisPos = new float[]{selectedDebris.getX(), selectedDebris.getY()};
+    }
+
+    /**
+     * Tries to pick up a watering can next to the player.
+     */
+    public boolean tryPickupWateringCan() {
+        if (hasWateringCan) return false;
+
+        WateringCan nearest = getNearestWateringCan();
+        if (nearest == null) return false;
+
+        // removes from world,pick up
+        nearest.destroy();
+        wateringCans.remove(nearest);
+        hasWateringCan = true;
+        return true;
+    }
+
+    /**
+     * Checks if watering can is ext to the player
+     * @return nearest watering can
+     */
+    public WateringCan getNearestWateringCan() {
+        if (hasWateringCan) return null;
+
+        float playerX = player.getX();
+        float playerY = player.getY();
+        Player.Direction playerDir = player.getCurrentDirection();
+
+        for (WateringCan wateringCan : wateringCans) {
+            float dx = wateringCan.getX() - playerX;
+            float dy = wateringCan.getY() - playerY;
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 1.5f) {
+                boolean facing = false;
+                switch (playerDir) {
+                    case UP: facing = dy > 0 && Math.abs(dy) > Math.abs(dx); break;
+                    case DOWN: facing = dy < 0 && Math.abs(dy) > Math.abs(dx); break;
+                    case LEFT: facing = dx < 0 && Math.abs(dx) > Math.abs(dy); break;
+                    case RIGHT: facing = dx > 0 && Math.abs(dx) > Math.abs(dy); break;
+                }
+
+                if (facing) return wateringCan;
+            }
+        }
+
+        return null;
     }
 
 }

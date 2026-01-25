@@ -79,9 +79,10 @@ public class Hud {
 
         // dynamic height of panel
         int contentLines = 2; // timer + debris
-        if (map.hasShovel()) contentLines++; // add shovel
-        if (map.hasFertilizer()) contentLines++; // add fertilizer
-        if (map.getSeedsCollected() > 0) contentLines++; // add seeds count
+        if (map.hasShovel()) contentLines++; // adds shovel
+        if (map.hasFertilizer()) contentLines++; // adds fertilizer
+        if (map.getSeedsCollected() > 0) contentLines++; // adds seeds count
+        if (map.hasWateringCan()) contentLines++; // adds watering can
         contentLines++; // exit text
         int panelHeight = padding * 2 + iconSize * contentLines + lineHeight + 20;
         int panelY = Gdx.graphics.getHeight() - panelHeight - 10;
@@ -123,6 +124,13 @@ public class Hud {
             drawFertilizerIcon(panelX + padding, currentY, iconSize);
             font.setColor(0.9f, 0.8f, 0.6f, 1f);
             font.draw(spriteBatch, "Fertilizer", panelX + padding + iconSize + 8, currentY + iconSize - 6);
+            currentY -= lineHeight;
+        }
+        // draws watering can icon if player has it.
+        if (map.hasWateringCan()) {
+            drawWateringCanIcon(panelX + padding, currentY, iconSize);
+            font.setColor(0.9f, 0.8f, 0.6f, 1f);
+            font.draw(spriteBatch, "Watering Can", panelX + padding + iconSize + 8, currentY + iconSize - 6);
             currentY -= lineHeight;
         }
         //Draws seeds count + icon
@@ -251,6 +259,25 @@ public class Hud {
 
         spriteBatch.setColor(Color.WHITE);
     }
+    /**
+     * Draws a watering can icon.
+     */
+    private void drawWateringCanIcon(int x, int y, int size) {
+        // draws body
+        spriteBatch.setColor(0.4f, 0.5f, 0.7f, 1f);
+        spriteBatch.draw(whitePixel, x + 4, y + 6, size - 8, size - 10);
+
+        // draws handle
+        spriteBatch.setColor(0.3f, 0.4f, 0.6f, 1f);
+        spriteBatch.draw(whitePixel, x + size - 6, y + size - 8, 4, 8);
+
+        // draws top
+        spriteBatch.setColor(0.25f, 0.35f, 0.55f, 1f);
+        spriteBatch.draw(whitePixel, x + 6, y + size - 6, size - 12, 3);
+
+        spriteBatch.setColor(Color.WHITE);
+    }
+
 
     /**
      * Draws hint when player is near a shovel/fertilizer.
@@ -260,9 +287,14 @@ public class Hud {
             drawHint("Press 'E' to take the fertilizer");
             return;
         }
+        if (map.getNearestWateringCan() != null && !map.hasWateringCan()) {
+            drawHint("Press 'E' to take the watering can");
+            return;
+        }
         if (map.getNearestShovel() != null && !map.hasShovel()) {
             drawHint("Press 'E' to take the shovel");
         }
+
     }
     /**
      * Draws specific hint.
