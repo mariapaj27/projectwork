@@ -20,7 +20,9 @@ public enum SpriteSheet {
     /** The basic tiles spritesheet, which has a grid size of 16x16. */
     BASIC_TILES("basictiles.png", 16, 16),
     OUTSIDE_TILES("Outside.png", 16, 16),
-    BASIC_ITEMS("basics.png", 16, 18);
+    BASIC_ITEMS("basics.png", 16, 18),
+    HARVEST("Harvest.png", 16, 16);
+
 
     
     private final Texture spritesheet;

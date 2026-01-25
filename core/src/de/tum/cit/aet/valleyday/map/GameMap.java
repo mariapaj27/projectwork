@@ -83,6 +83,8 @@ public class GameMap {
     private final List<Shovel> shovels;
     private final List<Grass> grass;
     private final List<Seed> seeds;
+    private final List<GardenBed> gardenBeds;
+    private final List<Plant> plants;
     private boolean hasShovel = false;
     /** if fertilizer spawned */
     private boolean questFertilizerSpawned = false;
@@ -94,6 +96,9 @@ public class GameMap {
 
     private boolean hasWateringCan = false;
     private float[] hiddenWateringCanDebrisPos = null;
+
+    private int plantsCollected = 0;
+    private float gameTime = 0f;
 
     /**
      * Constructor that loads map from MapLoader data.
@@ -118,6 +123,8 @@ public class GameMap {
         this.mapMinY = mapData.minY;
         this.mapMaxY = mapData.maxY;
         this.seeds = new ArrayList<>();
+        this.gardenBeds = new ArrayList<>();
+        this.plants = new ArrayList<>();
         // creates player at entrance position
         this.player = new Player(this.world, mapData.entranceX, mapData.entranceY);
         this.player.setHitCallback(this::onPlayerHit);
@@ -145,6 +152,9 @@ public class GameMap {
                     break;
                 case 7: // Shovel
                     shovels.add(new Shovel(obj.x, obj.y));
+                    break;
+                case 9: // Garden Bed
+                    gardenBeds.add(new GardenBed(obj.x, obj.y));
                     break;
             }
         }
@@ -192,6 +202,8 @@ public class GameMap {
         this.shovels = new ArrayList<>();
         this.grass = new ArrayList<>();
         this.seeds = new ArrayList<>();
+        this.gardenBeds = new ArrayList<>();
+        this.plants = new ArrayList<>();
 
     }
     
@@ -205,7 +217,13 @@ public class GameMap {
         if (!paused) {
             this.player.tick(frameTime);
             doPhysicsStep(frameTime);
+            // updates game time
+            gameTime += frameTime;
 
+            // updates plant growth stages
+            for (Plant plant : plants) {
+                plant.update(gameTime);
+            }
             // updates daylight timer
             daylightTimeRemaining -= frameTime;
             if (daylightTimeRemaining < 0) {
@@ -273,6 +291,8 @@ public class GameMap {
         drawables.addAll(wateringCans);
         drawables.addAll(shovels);
         drawables.addAll(seeds);
+        drawables.addAll(gardenBeds);
+        drawables.addAll(plants);
 
         // adds legacy objects if they exist
         if (flowers != null) {
@@ -389,6 +409,10 @@ public class GameMap {
     }
     public int getSeedsCollected() {
         return seedsCollected;
+    }
+
+    public int getPlantsCollected() {
+        return plantsCollected;
     }
 
     //BONUS darkenning
@@ -706,6 +730,145 @@ public class GameMap {
         }
 
         return null;
+    }
+    /**
+     * Plant actions.
+     * Called when player presses 'A' key.
+     * @return True if an action was performed.
+     */
+    public boolean tryPlantAction() {
+        float playerX = player.getX();
+        float playerY = player.getY();
+        Player.Direction playerDir = player.getCurrentDirection();
+
+        // gets target position
+        float targetX = playerX;
+        float targetY = playerY;
+        switch (playerDir) {
+            case UP: targetY += 1.0f; break;
+            case DOWN: targetY -= 1.0f; break;
+            case LEFT: targetX -= 1.0f; break;
+            case RIGHT: targetX += 1.0f; break;
+        }
+        // checks if there's a plant
+        Plant plantAtPos = getPlantAt(targetX, targetY);
+        if (plantAtPos != null) {
+            // if fully grown, tries to harvest
+            if (plantAtPos.canHarvest()) {
+                plants.remove(plantAtPos);
+                plantsCollected++;
+                return true;
+            }
+            // restores rotten plant if has watering can
+            if (plantAtPos.canRestore() && hasWateringCan) {
+                plantAtPos.restore(gameTime);
+                return true;
+            }
+            return false; // plant is still growing, no action
+        }
+
+        // checks if is garden bed
+        GardenBed bedAtPos = getGardenBedAt(targetX, targetY);
+        if (bedAtPos != null) {
+            // checks if there is no plant
+            if (plantAtPos == null && seedsCollected > 0) {
+                //plants a seed
+                plants.add(new Plant(targetX, targetY, gameTime));
+                seedsCollected--;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets the plant at the specified position.
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     * @return The plant at the position, or null if none.
+     */
+    private Plant getPlantAt(float x, float y) {
+        for (Plant plant : plants) {
+            float dx = Math.abs(plant.getX() - x);
+            float dy = Math.abs(plant.getY() - y);
+            if (dx < 0.5f && dy < 0.5f) {
+                return plant;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gets the garden bed at the specified position.
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     * @return The garden bed at the position, or null if none.
+     */
+    private GardenBed getGardenBedAt(float x, float y) {
+        for (GardenBed bed : gardenBeds) {
+            float dx = Math.abs(bed.getX() - x);
+            float dy = Math.abs(bed.getY() - y);
+            if (dx < 0.5f && dy < 0.5f) {
+                return bed;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Gets the nearest plantable garden bed or harvestable plant in front of player.
+     * @return Information about what action is available, or null.
+     */
+    public PlantActionInfo getNearestPlantAction() {
+        float playerX = player.getX();
+        float playerY = player.getY();
+        Player.Direction playerDir = player.getCurrentDirection();
+
+        // gets target position
+        float targetX = playerX;
+        float targetY = playerY;
+        switch (playerDir) {
+            case UP: targetY += 1.0f; break;
+            case DOWN: targetY -= 1.0f; break;
+            case LEFT: targetX -= 1.0f; break;
+            case RIGHT: targetX += 1.0f; break;
+        }
+
+        Plant plant = getPlantAt(targetX, targetY);
+        if (plant != null) {
+            if (plant.canHarvest()) {
+                return new PlantActionInfo(PlantActionInfo.ActionType.HARVEST, targetX, targetY);
+            }
+            if (plant.canRestore() && hasWateringCan) {
+                return new PlantActionInfo(PlantActionInfo.ActionType.RESTORE, targetX, targetY);
+            }
+        }
+
+        GardenBed bed = getGardenBedAt(targetX, targetY);
+        if (bed != null && plant == null && seedsCollected > 0) {
+            return new PlantActionInfo(PlantActionInfo.ActionType.PLANT, targetX, targetY);
+        }
+
+        return null;
+    }
+
+    /**
+     * Information about current plant action.
+     */
+    public static class PlantActionInfo {
+        public enum ActionType {
+            PLANT, HARVEST, RESTORE
+        }
+
+        public final ActionType type;
+        public final float x;
+        public final float y;
+
+        public PlantActionInfo(ActionType type, float x, float y) {
+            this.type = type;
+            this.x = x;
+            this.y = y;
+        }
     }
 
 }

@@ -89,13 +89,17 @@ public class GameScreen implements Screen {
      */
     @Override
     public void render(float deltaTime) {
-        // check if E key press to pick up the shovel 
+        // checks if E key press to pick up the shovel
         if (!showPauseMenu && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             map.tryInteract();
         }
         // if escape key pressed open pause menu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePauseMenu();
+        }
+        // checks if A key press to plant/harvest/restore plants
+        if (!showPauseMenu && Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+            map.tryPlantAction();
         }
         
         // Clear the previous frame from the screen, or else the picture smears

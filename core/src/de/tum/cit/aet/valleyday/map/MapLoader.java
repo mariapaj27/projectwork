@@ -21,6 +21,7 @@ import java.util.*;
  * 5 = Fertilizer
  * 6 = Watering Can
  * 7 = Shovel
+ * 9 = Garden Bed
  */
 public class MapLoader {
     
@@ -175,9 +176,9 @@ public class MapLoader {
                 int x = Integer.parseInt(positionPart.substring(0, commaIndex).trim());
                 int y = Integer.parseInt(positionPart.substring(commaIndex + 1).trim());
                 int type = Integer.parseInt(typePart);
-                
+
                 // validates the type
-                if (type < 0 || type > 7) {
+                if ((type < 0 || type > 7) && type != 9) {
                     continue;
                 }
                 //creates new object

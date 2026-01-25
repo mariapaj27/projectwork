@@ -83,6 +83,7 @@ public class Hud {
         if (map.hasFertilizer()) contentLines++; // adds fertilizer
         if (map.getSeedsCollected() > 0) contentLines++; // adds seeds count
         if (map.hasWateringCan()) contentLines++; // adds watering can
+        if (map.getPlantsCollected() > 0) contentLines++; // adds plants
         contentLines++; // exit text
         int panelHeight = padding * 2 + iconSize * contentLines + lineHeight + 20;
         int panelY = Gdx.graphics.getHeight() - panelHeight - 10;
@@ -138,6 +139,12 @@ public class Hud {
             drawSeedIcon(panelX + padding, currentY, iconSize);
             font.setColor(0.9f, 0.8f, 0.6f, 1f);
             font.draw(spriteBatch, "Seeds: " + map.getSeedsCollected(), panelX + padding + iconSize + 8, currentY + iconSize - 6);
+            currentY -= lineHeight;
+        }
+        if (map.getPlantsCollected() > 0) {
+            drawPlantIcon(panelX + padding, currentY, iconSize);
+            font.setColor(0.9f, 0.8f, 0.6f, 1f);
+            font.draw(spriteBatch, "Plants: " + map.getPlantsCollected(), panelX + padding + iconSize + 8, currentY + iconSize - 6);
             currentY -= lineHeight;
         }
         // Debris icon and count
@@ -205,6 +212,22 @@ public class Hud {
 
         spriteBatch.setColor(0.3f, 0.75f, 0.3f, 1f);
         spriteBatch.draw(whitePixel, x + size / 2 - 1, y + size / 2 + 2, 2, 6);
+
+        spriteBatch.setColor(Color.WHITE);
+    }
+
+    /**
+     * Draws plant icon.
+     */
+    private void drawPlantIcon(int x, int y, int size) {
+        // draws a fully grown plant
+        spriteBatch.setColor(0.2f, 0.7f, 0.2f, 1f);
+        spriteBatch.draw(whitePixel, x + size / 2 - 2, y + 4, 4, size - 8);
+
+        // draws leaves
+        spriteBatch.setColor(0.1f, 0.6f, 0.1f, 1f);
+        drawCircle(x + size / 2 - 4, y + size / 2, 3);
+        drawCircle(x + size / 2 + 4, y + size / 2, 3);
 
         spriteBatch.setColor(Color.WHITE);
     }
@@ -293,6 +316,22 @@ public class Hud {
         }
         if (map.getNearestShovel() != null && !map.hasShovel()) {
             drawHint("Press 'E' to take the shovel");
+            return;
+        }
+        // checks for plant actions (plant/harvest/restore)
+        GameMap.PlantActionInfo plantAction = map.getNearestPlantAction();
+        if (plantAction != null) {
+            switch (plantAction.type) {
+                case PLANT:
+                    drawHint("Press 'A' to plant a seed");
+                    break;
+                case HARVEST:
+                    drawHint("Press 'A' to harvest the plant");
+                    break;
+                case RESTORE:
+                    drawHint("Press 'A' to restore the plant");
+                    break;
+            }
         }
 
     }
