@@ -5,6 +5,8 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 import de.tum.cit.aet.valleyday.ValleyDayGame;
 import de.tum.cit.aet.valleyday.texture.Drawable;
+import java.util.HashSet;
+import java.util.Random;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +55,17 @@ public class GameMap {
     private int debrisCollected = 0;
     private static final int MIN_DEBRIS_REQUIRED = 6;
     private boolean paused = false;
-    
+
+    private boolean questSeedsSpawned = false;
+    private int seedsCollected = 0;
+    private static final int QUEST_SEED_COUNT = 6;
+    private static final float SEED_MIN_DISTANCE_FROM_PLAYER = 6.0f;
+    // seed spawning criteria
+    private int mapMinX = 0;
+    private int mapMaxX = 6;
+    private int mapMinY = 0;
+    private int mapMaxY = 6;
+
     // Game objects
     private final Player player;
     
@@ -70,6 +82,7 @@ public class GameMap {
     private final List<WateringCan> wateringCans;
     private final List<Shovel> shovels;
     private final List<Grass> grass;
+    private final List<Seed> seeds;
     private boolean hasShovel = false;
     /** if fertilizer spawned */
     private boolean questFertilizerSpawned = false;
@@ -97,7 +110,11 @@ public class GameMap {
         this.wateringCans = new ArrayList<>();
         this.shovels = new ArrayList<>();
         this.grass = new ArrayList<>();
-
+        this.mapMinX = mapData.minX;
+        this.mapMaxX = mapData.maxX;
+        this.mapMinY = mapData.minY;
+        this.mapMaxY = mapData.maxY;
+        this.seeds = new ArrayList<>();
         // creates player at entrance position
         this.player = new Player(this.world, mapData.entranceX, mapData.entranceY);
         this.player.setHitCallback(this::onPlayerHit);
@@ -169,6 +186,8 @@ public class GameMap {
         this.wateringCans = new ArrayList<>();
         this.shovels = new ArrayList<>();
         this.grass = new ArrayList<>();
+        this.seeds = new ArrayList<>();
+
     }
     
     /**
@@ -248,6 +267,7 @@ public class GameMap {
         drawables.addAll(fertilizers);
         drawables.addAll(wateringCans);
         drawables.addAll(shovels);
+        drawables.addAll(seeds);
 
         // adds legacy objects if they exist
         if (flowers != null) {
@@ -319,6 +339,20 @@ public class GameMap {
             debris.remove(toRemove); // removes from debris list
             debrisCollected++;
         }
+        Seed seedToRemove = null;
+        for (Seed s : seeds) {
+            float dx = Math.abs(s.getX() - targetX);
+            float dy = Math.abs(s.getY() - targetY);
+            if (dx < 0.5f && dy < 0.5f) {
+                seedToRemove = s;
+                break;
+            }
+        }
+        if (seedToRemove != null) {
+            seedToRemove.destroy();
+            seeds.remove(seedToRemove);
+            seedsCollected++;
+        }
     }
     //getters
     public float getDaylightTimeRemaining() {
@@ -337,6 +371,9 @@ public class GameMap {
 
     public int getMinDebrisRequired() {
         return MIN_DEBRIS_REQUIRED;
+    }
+    public int getSeedsCollected() {
+        return seedsCollected;
     }
 
     //BONUS darkenning
@@ -405,6 +442,8 @@ public class GameMap {
         nearest.destroy();
         fertilizers.remove(nearest);
         hasFertilizer = true;
+        // when fertilizer is picked up, add pickable seeds on map
+        spawnQuestSeedsIfNeeded();
         return true;
     }
 
@@ -504,6 +543,92 @@ public class GameMap {
         }
         
         return null;
+    }
+
+    private void spawnQuestSeedsIfNeeded() {
+        if (questSeedsSpawned) return;
+        if (!hasFertilizer) return;
+
+        // checks for not empty points
+        HashSet<Long> occupied = new HashSet<>();
+        addOccupied(occupied, fences);
+        addOccupied(occupied, debris);
+        addOccupied(occupied, exits);
+        addOccupied(occupied, wildlifeVisitors);
+        addOccupied(occupied, fertilizers);
+        addOccupied(occupied, wateringCans);
+        addOccupied(occupied, shovels);
+        addOccupied(occupied, seeds);
+
+        int playerTileX = Math.round(player.getX());
+        int playerTileY = Math.round(player.getY());
+
+        List<int[]> candidatesFar = new ArrayList<>();
+        List<int[]> candidatesAny = new ArrayList<>();
+        //spawn seeds in specific distance from player
+        for (int x = mapMinX; x <= mapMaxX; x++) {
+            for (int y = mapMinY; y <= mapMaxY; y++) {
+                long key = pack(x, y);
+                if (occupied.contains(key)) continue;
+                candidatesAny.add(new int[]{x, y}); // empty point
+                //check distance
+                float dx = x - playerTileX;
+                float dy = y - playerTileY;
+                float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                if (dist >= SEED_MIN_DISTANCE_FROM_PLAYER) {
+                    candidatesFar.add(new int[]{x, y});
+                }
+            }
+        }
+
+        Random rnd = new Random();
+        int spawned = 0;
+
+        // prefer far points
+        while (spawned < QUEST_SEED_COUNT && (!candidatesFar.isEmpty() || !candidatesAny.isEmpty())) {
+            List<int[]> pool = !candidatesFar.isEmpty() ? candidatesFar : candidatesAny;
+            int idx = rnd.nextInt(pool.size());
+            int[] pos = pool.remove(idx);
+
+            // remove points from candidates
+            removePos(candidatesAny, pos[0], pos[1]);
+            removePos(candidatesFar, pos[0], pos[1]);
+
+            seeds.add(new Seed(world, pos[0], pos[1]));
+            spawned++;
+        }
+        questSeedsSpawned = true;
+    }
+
+    /**
+     * Helper method to remove used points from list.
+     */
+    private static void removePos(List<int[]> list, int x, int y) {
+        for (int i = 0; i < list.size(); i++) {
+            int[] p = list.get(i);
+            if (p[0] == x && p[1] == y) {
+                list.remove(i);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Helper method to create key of object on the coordinate
+     */
+    private static long pack(int x, int y) {
+        return (((long) x) << 32) ^ (y & 0xffffffffL);
+    }
+
+    /**
+     * Marks that point on the map is occupied.
+     */
+    private static void addOccupied(HashSet<Long> occupied, List<? extends Drawable> objects) {
+        for (Drawable d : objects) {
+            int x = Math.round(d.getX());
+            int y = Math.round(d.getY());
+            occupied.add(pack(x, y));
+        }
     }
 
 }

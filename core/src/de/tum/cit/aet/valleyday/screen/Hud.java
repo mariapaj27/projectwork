@@ -81,12 +81,13 @@ public class Hud {
         int contentLines = 2; // timer + debris
         if (map.hasShovel()) contentLines++; // add shovel
         if (map.hasFertilizer()) contentLines++; // add fertilizer
+        if (map.getSeedsCollected() > 0) contentLines++; // add seeds count
         contentLines++; // exit text
         int panelHeight = padding * 2 + iconSize * contentLines + lineHeight + 20;
         int panelY = Gdx.graphics.getHeight() - panelHeight - 10;
 
         // draws brown background for panel
-        spriteBatch.setColor(0.7f, 0.5f, 0.3f, 1f); // brown color
+        spriteBatch.setColor(0.3f, 0.2f, 0.1f, 1f); // brown color
         spriteBatch.draw(whitePixel, panelX, panelY, panelWidth, panelHeight);
         
         // borders lighter
@@ -124,7 +125,13 @@ public class Hud {
             font.draw(spriteBatch, "Fertilizer", panelX + padding + iconSize + 8, currentY + iconSize - 6);
             currentY -= lineHeight;
         }
-
+        //Draws seeds count + icon
+        if (map.getSeedsCollected() > 0) {
+            drawSeedIcon(panelX + padding, currentY, iconSize);
+            font.setColor(0.9f, 0.8f, 0.6f, 1f);
+            font.draw(spriteBatch, "Seeds: " + map.getSeedsCollected(), panelX + padding + iconSize + 8, currentY + iconSize - 6);
+            currentY -= lineHeight;
+        }
         // Debris icon and count
         drawDebrisIcon(panelX + padding, currentY, iconSize);
         font.setColor(0.9f, 0.8f, 0.6f, 1f);
@@ -179,6 +186,18 @@ public class Hud {
         spriteBatch.draw(whitePixel, x + 8, y + 10, 6, 8);
         spriteBatch.draw(whitePixel, x + 14, y + 6, 7, 5);
         
+        spriteBatch.setColor(Color.WHITE);
+    }
+    /**
+     * Draws seed icon.
+     */
+    private void drawSeedIcon(int x, int y, int size) {
+        spriteBatch.setColor(0.5f, 0.35f, 0.2f, 1f);
+        spriteBatch.draw(whitePixel, x + size / 2 - 3, y + size / 2 - 2, 6, 4);
+
+        spriteBatch.setColor(0.3f, 0.75f, 0.3f, 1f);
+        spriteBatch.draw(whitePixel, x + size / 2 - 1, y + size / 2 + 2, 2, 6);
+
         spriteBatch.setColor(Color.WHITE);
     }
     
@@ -279,3 +298,4 @@ public class Hud {
     }
 
 }
+
