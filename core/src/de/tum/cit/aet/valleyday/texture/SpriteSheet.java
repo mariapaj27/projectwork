@@ -21,10 +21,9 @@ public enum SpriteSheet {
     BASIC_TILES("basictiles.png", 16, 16),
     OUTSIDE_TILES("Outside.png", 16, 16),
     BASIC_ITEMS("basics.png", 16, 18),
-    HARVEST("Harvest.png", 16, 16);
+    HARVEST("Harvest.png", 16, 16),
+    ANIMALS("creatures.png", 16, 17);
 
-
-    
     private final Texture spritesheet;
     private final int width;
     private final int height;

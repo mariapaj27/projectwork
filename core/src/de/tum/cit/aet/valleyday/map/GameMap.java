@@ -66,6 +66,13 @@ public class GameMap {
     private int mapMinY = 0;
     private int mapMaxY = 6;
 
+    private boolean gameLost = false;
+    private static final int WILDLIFE_COUNT = 3;
+    private static final float WILDLIFE_MIN_DISTANCE_FROM_PLANTS = 6.0f;
+    private static final float PERIODIC_SPAWN_START_TIME = 180f;
+    private static final float PERIODIC_SPAWN_INTERVAL = 15f;
+    private float lastPeriodicSpawnTime = MAX_DAYLIGHT_TIME;
+
     // Game objects
     private final Player player;
     
@@ -85,6 +92,8 @@ public class GameMap {
     private final List<Seed> seeds;
     private final List<GardenBed> gardenBeds;
     private final List<Plant> plants;
+    private final List<Wildlife> wildlife;
+
     private boolean hasShovel = false;
     /** if fertilizer spawned */
     private boolean questFertilizerSpawned = false;
@@ -125,9 +134,11 @@ public class GameMap {
         this.seeds = new ArrayList<>();
         this.gardenBeds = new ArrayList<>();
         this.plants = new ArrayList<>();
+        this.wildlife = new ArrayList<>();
         // creates player at entrance position
         this.player = new Player(this.world, mapData.entranceX, mapData.entranceY);
         this.player.setHitCallback(this::onPlayerHit);
+        this.player.setShoutCallback(this::onPlayerShout);
 
         // creates objects based on map data
         for (MapLoader.MapObject obj : mapData.objects) {
@@ -204,6 +215,9 @@ public class GameMap {
         this.seeds = new ArrayList<>();
         this.gardenBeds = new ArrayList<>();
         this.plants = new ArrayList<>();
+        this.wildlife = new ArrayList<>();
+        this.player.setShoutCallback(this::onPlayerShout);
+
 
     }
     
@@ -224,10 +238,38 @@ public class GameMap {
             for (Plant plant : plants) {
                 plant.update(gameTime);
             }
+            if (!gameLost) {
+                float playerX = player.getX();
+                float playerY = player.getY();
+
+                // Update wildlife and remove.
+                List<Wildlife> toRemove = new ArrayList<>();
+                for (Wildlife w : wildlife) {
+                    if (w.tick(frameTime, plants, playerX, playerY)) {
+                        toRemove.add(w);
+                    }
+                }
+
+                // Remove wildlife that ran away
+                for (Wildlife w : toRemove) {
+                    w.destroy();
+                    wildlife.remove(w);
+                }
+                //if wildlife hit plant or player
+                checkWildlifeCollisions();
+            }
             // updates daylight timer
             daylightTimeRemaining -= frameTime;
             if (daylightTimeRemaining < 0) {
                 daylightTimeRemaining = 0;
+            }
+            // Periodic wildlife spawn from 3:00 and every 15 seconds.
+            if (daylightTimeRemaining <= PERIODIC_SPAWN_START_TIME) {
+                float timeSinceLastSpawn = lastPeriodicSpawnTime - daylightTimeRemaining;
+                if (timeSinceLastSpawn >= PERIODIC_SPAWN_INTERVAL) {
+                    spawnPeriodicWildlife();
+                    lastPeriodicSpawnTime = daylightTimeRemaining;
+                }
             }
         }
         //spawn fertilizer if quest completed
@@ -293,6 +335,7 @@ public class GameMap {
         drawables.addAll(seeds);
         drawables.addAll(gardenBeds);
         drawables.addAll(plants);
+        drawables.addAll(wildlife);
 
         // adds legacy objects if they exist
         if (flowers != null) {
@@ -387,6 +430,26 @@ public class GameMap {
             seedToRemove.destroy();
             seeds.remove(seedToRemove);
             seedsCollected++;
+        }
+    }
+    /**
+     * Called after player shouted.
+     * @param playerX The X coordinate of the player.
+     * @param playerY The Y coordinate of the player.
+     */
+    private void onPlayerShout(float playerX, float playerY) {
+        float scareRadius = 2.0f; // radius of the scare
+
+        for (Wildlife w : wildlife) {
+            if (w.isScared()) continue; //if already scared
+
+            float dx = w.getX() - playerX;
+            float dy = w.getY() - playerY;
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= scareRadius) { // if in the radius
+                w.scare();
+            }
         }
     }
     //getters
@@ -775,6 +838,7 @@ public class GameMap {
                 //plants a seed
                 plants.add(new Plant(targetX, targetY, gameTime));
                 seedsCollected--;
+                spawnWildlifeIfNeeded();
                 return true;
             }
         }
@@ -870,5 +934,177 @@ public class GameMap {
             this.y = y;
         }
     }
+    /**
+     * Spawns wildlife creatures after a plant is planted.
+     */
+    private void spawnWildlifeIfNeeded() {
+        if (plants.isEmpty()) return; // wait until one plant is planted.
+
+        // Gets occupied cells
+        HashSet<Long> occupied = new HashSet<>();
+        addOccupied(occupied, fences);
+        addOccupied(occupied, debris);
+        addOccupied(occupied, exits);
+        addOccupied(occupied, wildlifeVisitors);
+        addOccupied(occupied, fertilizers);
+        addOccupied(occupied, wateringCans);
+        addOccupied(occupied, shovels);
+        addOccupied(occupied, seeds);
+        addOccupied(occupied, plants);
+        addOccupied(occupied, gardenBeds);
+        addOccupied(occupied, wildlife);
+
+        // gets plant positions to check the distance .
+        List<float[]> plantPositions = new ArrayList<>();
+        for (Plant plant : plants) {
+            plantPositions.add(new float[]{plant.getX(), plant.getY()});
+        }
+
+        List<int[]> candidatesFar = new ArrayList<>();
+        List<int[]> candidatesAny = new ArrayList<>();
+
+        for (int x = mapMinX; x <= mapMaxX; x++) {
+            for (int y = mapMinY; y <= mapMaxY; y++) {
+                long key = pack(x, y);
+                if (occupied.contains(key)) continue;
+
+                // checks distance from plants
+                boolean farEnough = true;
+                for (float[] plantPos : plantPositions) {
+                    float dx = x - plantPos[0];
+                    float dy = y - plantPos[1];
+                    float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                    if (dist < WILDLIFE_MIN_DISTANCE_FROM_PLANTS) {
+                        farEnough = false;
+                        break;
+                    }
+                }
+                if (farEnough) {
+                    candidatesFar.add(new int[]{x, y});
+                } else {
+                    candidatesAny.add(new int[]{x, y});
+                }
+            }
+        }
+
+        Random rnd = new Random();
+        int spawned = 0;
+
+        // prefer far cells
+        while (spawned < WILDLIFE_COUNT && (!candidatesFar.isEmpty() || !candidatesAny.isEmpty())) {
+            List<int[]> pool = !candidatesFar.isEmpty() ? candidatesFar : candidatesAny;
+            int idx = rnd.nextInt(pool.size());
+            int[] pos = pool.remove(idx);
+
+            // Remove from list to avoid duplicates
+            removePos(candidatesAny, pos[0], pos[1]);
+            removePos(candidatesFar, pos[0], pos[1]);
+
+            wildlife.add(new Wildlife(world, pos[0], pos[1]));
+            spawned++;
+        }
+    }
+
+    /**
+     * Spawns every 15 seconds after 3:00.
+     */
+    private void spawnPeriodicWildlife() {
+        HashSet<Long> occupied = new HashSet<>();
+        addOccupied(occupied, fences);
+        addOccupied(occupied, debris);
+        addOccupied(occupied, exits);
+        addOccupied(occupied, wildlifeVisitors);
+        addOccupied(occupied, fertilizers);
+        addOccupied(occupied, wateringCans);
+        addOccupied(occupied, shovels);
+        addOccupied(occupied, seeds);
+        addOccupied(occupied, plants);
+        addOccupied(occupied, gardenBeds);
+        addOccupied(occupied, wildlife);
+
+        List<float[]> plantPositions = new ArrayList<>();
+        for (Plant plant : plants) {
+            plantPositions.add(new float[]{plant.getX(), plant.getY()});
+        }
+
+        List<int[]> candidatesFar = new ArrayList<>();
+        List<int[]> candidatesAny = new ArrayList<>();
+
+        for (int x = mapMinX; x <= mapMaxX; x++) {
+            for (int y = mapMinY; y <= mapMaxY; y++) {
+                long key = pack(x, y);
+                if (occupied.contains(key)) continue;
+
+                boolean farEnough = true;
+                if (!plantPositions.isEmpty()) {
+                    for (float[] plantPos : plantPositions) {
+                        float dx = x - plantPos[0];
+                        float dy = y - plantPos[1];
+                        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                        if (dist < WILDLIFE_MIN_DISTANCE_FROM_PLANTS) {
+                            farEnough = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (farEnough && !plantPositions.isEmpty()) {
+                    candidatesFar.add(new int[]{x, y});
+                } else {
+                    candidatesAny.add(new int[]{x, y});
+                }
+            }
+        }
+
+        Random rnd = new Random();
+        int spawned = 0;
+
+        while (spawned < WILDLIFE_COUNT && (!candidatesFar.isEmpty() || !candidatesAny.isEmpty())) {
+            List<int[]> pool = !candidatesFar.isEmpty() ? candidatesFar : candidatesAny;
+            int idx = rnd.nextInt(pool.size());
+            int[] pos = pool.remove(idx);
+
+            removePos(candidatesAny, pos[0], pos[1]);
+            removePos(candidatesFar, pos[0], pos[1]);
+
+            wildlife.add(new Wildlife(world, pos[0], pos[1]));
+            spawned++;
+        }
+
+    }
+
+    /**
+     * Checks if wildlife touched plants/player.
+     */
+    private void checkWildlifeCollisions() {
+        if (gameLost) return; // already lost
+
+        for (Wildlife w : wildlife) {
+            // Check if touched plants
+            if (!plants.isEmpty()) {
+                for (Plant plant : new ArrayList<>(plants)) {
+                    if (w.isTouchingPlant(plant)) {
+                        // if wildlife touched plant -> game over
+                        plants.remove(plant);
+                        gameLost = true;
+                        return;
+                    }
+                }
+            }
+
+            // Check if touched thr player
+            if (w.isTouchingPlayer(player)) {
+                // if wildlife touched player -> game over
+                gameLost = true;
+                return;
+            }
+        }
+    }
+
+    public boolean isGameLost() {
+        return gameLost;
+    }
+
+
 
 }

@@ -110,6 +110,13 @@ public class GameScreen implements Screen {
         
         // Update the map state
         map.tick(frameTime);
+
+        // Check if game is lost
+        if (map.isGameLost()) {
+            // Return to menu if game over
+            game.goToMenu();
+            return;
+        }
         
         // Update the camera
         updateCamera();

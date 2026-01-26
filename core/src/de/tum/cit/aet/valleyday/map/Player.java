@@ -36,11 +36,27 @@ public class Player implements Drawable {
     //Action after hitting completed
     private HitCallback hitCallback;
     private boolean hasShovel = false;
+
+    private boolean isShouting = false;
+    private float shoutingTime = 0f;
+    private static final float SHOUTING_DURATION = 1.0f;
+    private ShoutCallback shoutCallback;
+
     /**
      * Interface for hit callback.
      */
     public interface HitCallback {
         void onHitComplete(float targetX, float targetY, Direction direction);
+    }
+    /**
+     * Interface for shout callback.
+     */
+    public interface ShoutCallback {
+        void onShoutComplete(float playerX, float playerY);
+    }
+
+    public void setShoutCallback(ShoutCallback callback) {
+        this.shoutCallback = callback;
     }
     /**
      * Gets the current hitting duration based on if player has shovel.
@@ -95,6 +111,34 @@ public class Player implements Drawable {
      * @param frameTime the time since the last frame.
      */
     public void tick(float frameTime) {
+        // Check if S key is pressed
+        boolean sPressed = Gdx.input.isKeyJustPressed(Input.Keys.S);
+
+        if (sPressed && !isShouting && !isHitting) {
+            // Start shouting when S is pressed
+            isShouting = true;
+            shoutingTime = 0f;
+        }
+
+        //  shouting state
+        if (isShouting) {
+            shoutingTime += frameTime;
+
+            // Stop player while shouting
+            this.hitbox.setLinearVelocity(0, 0);
+
+            // Check if shouting  complete
+            if (shoutingTime >= SHOUTING_DURATION) {
+                if (shoutCallback != null) {
+                    shoutCallback.onShoutComplete(getX(), getY());
+                }
+                // Reset
+                isShouting = false;
+                shoutingTime = 0f;
+            }
+
+            return;
+        }
            //if D key is pressed
         boolean dPressed = Gdx.input.isKeyPressed(Input.Keys.D);
         
@@ -200,12 +244,16 @@ public class Player implements Drawable {
         return isHitting;
     }
 
+    public boolean isShouting() {
+        return isShouting;
+    }
+
     @Override
     public TextureRegion getCurrentAppearance() {
         // chooses animation based on player's action
         Animation<TextureRegion> animation;
 
-        if (isHitting) {
+        if (isShouting || isHitting) {
             // chooses attack animation
             animation = switch (currentDirection) {
                 case UP -> Animations.CHARACTER_ATTACK_UP;
@@ -213,7 +261,8 @@ public class Player implements Drawable {
                 case RIGHT -> Animations.CHARACTER_ATTACK_RIGHT;
                 case DOWN -> Animations.CHARACTER_ATTACK_DOWN;
             };
-            return animation.getKeyFrame(hittingTime, false);
+            float animTime = isShouting ? shoutingTime : hittingTime;
+            return animation.getKeyFrame(animTime, false);
         } else {
             // chooses walk animation
             animation = switch (currentDirection) {
@@ -252,3 +301,4 @@ public class Player implements Drawable {
     }
 
 }
+
