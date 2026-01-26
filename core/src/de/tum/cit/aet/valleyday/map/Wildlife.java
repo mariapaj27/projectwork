@@ -39,10 +39,10 @@ public class Wildlife implements Drawable {
     private float stuckTime = 0f;
     
     /** Time for unstack */
-    private static final float STUCK_THRESHOLD = 1.0f;
+    private static final float STUCK_THRESHOLD = 0.5f;
     
     /** Minimum distance moved to reset stuck timer */
-    private static final float MOVEMENT_THRESHOLD = 0.1f;
+    private static final float MOVEMENT_THRESHOLD = 0.15f;
     
     /** Current avoidance direction */
     private float avoidanceAngle = 0f;
@@ -51,7 +51,10 @@ public class Wildlife implements Drawable {
     private float avoidanceTime = 0f;
     
     /** Duration to avoid before direct path  */
-    private static final float AVOIDANCE_DURATION = 2.0f;
+    private static final float AVOIDANCE_DURATION = 1.5f;
+    private int lastAvoidanceAttempt = 0;
+    private int avoidanceAttempts = 0;
+    private static final int MAX_AVOIDANCE_ATTEMPTS = 4;
     
     /**
      * Creates a new wildlife creature at the given position.
@@ -125,21 +128,6 @@ public class Wildlife implements Drawable {
         // Unstuck algorithm
         float currentX = getX();
         float currentY = getY();
-        float movedDistance = (float) Math.sqrt(
-            (currentX - lastX) * (currentX - lastX) + 
-            (currentY - lastY) * (currentY - lastY)
-        );
-        
-        if (movedDistance < MOVEMENT_THRESHOLD) {
-            stuckTime += frameTime;
-        } else {
-            stuckTime = 0f;
-            avoidanceTime = 0f;
-            avoidanceAngle = 0f;
-        }
-
-        lastX = currentX;
-        lastY = currentY;
 
         float targetX = 0f;
         float targetY = 0f;
@@ -162,6 +150,8 @@ public class Wildlife implements Drawable {
         
         if (!hasTarget) {
             hitbox.setLinearVelocity(0, 0);
+            lastX = currentX;
+            lastY = currentY;
             return false;
         }
 
@@ -171,40 +161,124 @@ public class Wildlife implements Drawable {
         
         if (distance < 0.1f) {
             hitbox.setLinearVelocity(0, 0);
+            lastX = currentX;
+            lastY = currentY;
             return false;
         }
-        
-        // normal direction
-        float dirX = dx / distance;
-        float dirY = dy / distance;
-        
-        // Avoidance angle algorithm
-        if (stuckTime >= STUCK_THRESHOLD) {
-            avoidanceTime += frameTime;
 
-            if (avoidanceAngle == 0f) {
-                float perpX = -dirY;
-                float perpY = dirX;
-                
-                avoidanceAngle = (float) Math.atan2(perpY, perpX);
-            }
-            
-            float avoidX = (float) Math.cos(avoidanceAngle);
-            float avoidY = (float) Math.sin(avoidanceAngle);
-            
-            float xVelocity = avoidX * MOVE_SPEED;
-            float yVelocity = avoidY * MOVE_SPEED;
-            
-            hitbox.setLinearVelocity(xVelocity, yVelocity);
-            
-            // resets path to target
-            if (avoidanceTime >= AVOIDANCE_DURATION) {
+        // Check if stuck
+        float movedDistance = (float) Math.sqrt(
+                (currentX - lastX) * (currentX - lastX) +
+                        (currentY - lastY) * (currentY - lastY)
+        );
+
+        // Check if velocity is close to 0.
+        float currentVelX = hitbox.getLinearVelocity().x;
+        float currentVelY = hitbox.getLinearVelocity().y;
+        float currentSpeed = (float) Math.sqrt(currentVelX * currentVelX + currentVelY * currentVelY);
+
+        boolean isActuallyStuck = (movedDistance < MOVEMENT_THRESHOLD) && (currentSpeed < 0.05f) && (distance > 0.5f);
+
+        if (isActuallyStuck) {
+            stuckTime += frameTime;
+        } else {
+            // resets stuck state
+            if (movedDistance >= MOVEMENT_THRESHOLD) {
                 stuckTime = 0f;
                 avoidanceTime = 0f;
                 avoidanceAngle = 0f;
+                avoidanceAttempts = 0;
+                lastAvoidanceAttempt = 0;
             }
-            
-            return false;
+        }
+        lastX = currentX;
+        lastY = currentY;
+
+        // unstuck algorithm
+        if (stuckTime >= STUCK_THRESHOLD) {
+            avoidanceTime += frameTime;
+
+            // trying different ways to unstuck.
+            if (avoidanceTime >= AVOIDANCE_DURATION || avoidanceAngle == 0f) {
+                float dirX = dx / distance;
+                float dirY = dy / distance;
+
+                float newAngle = 0f;
+
+                switch (lastAvoidanceAttempt % 8) {
+                    case 0: // clockwise
+                        newAngle = (float) Math.atan2(dirX, -dirY);
+                        break;
+                    case 1: // counter-clockwise
+                        newAngle = (float) Math.atan2(-dirX, dirY);
+                        break;
+                    case 2: // 45 degrees right
+                        newAngle = (float) Math.atan2(dirY + dirX, dirX - dirY);
+                        break;
+                    case 3: // 45 degrees left
+                        newAngle = (float) Math.atan2(dirY - dirX, dirX + dirY);
+                        break;
+                    case 4: // x-axis only
+                        newAngle = (dx > 0) ? 0f : (float) Math.PI;
+                        break;
+                    case 5: // y-axis only
+                        newAngle = (dy > 0) ? (float) (Math.PI / 2) : (float) (-Math.PI / 2);
+                        break;
+                    case 6: // opposite perpendicular right
+                        newAngle = (float) Math.atan2(-dirX, dirY);
+                        break;
+                    case 7: // opposite perpendicular left
+                        newAngle = (float) Math.atan2(dirX, -dirY);
+                        break;
+                }
+
+                avoidanceAngle = newAngle;
+                lastAvoidanceAttempt++;
+                avoidanceTime = 0f; // resets timer
+
+                // try direct path
+                if (avoidanceAttempts >= MAX_AVOIDANCE_ATTEMPTS) {
+                    stuckTime = 0f;
+                    avoidanceTime = 0f;
+                    avoidanceAngle = 0f;
+                    avoidanceAttempts = 0;
+                    lastAvoidanceAttempt = 0;
+                } else {
+                    avoidanceAttempts++;
+                }
+            }
+
+            // if still stuck, move in avoidance direction
+            if (stuckTime >= STUCK_THRESHOLD && avoidanceAngle != 0f) {
+                float avoidX = (float) Math.cos(avoidanceAngle);
+                float avoidY = (float) Math.sin(avoidanceAngle);
+
+                float xVelocity = avoidX * MOVE_SPEED;
+                float yVelocity = avoidY * MOVE_SPEED;
+
+                hitbox.setLinearVelocity(xVelocity, yVelocity);
+                return false;
+            }
+        }
+
+        // choose shortest path, normal movement
+        float absDx = Math.abs(dx);
+        float absDy = Math.abs(dy);
+
+        float dirX, dirY;
+        //if x/y longer distances choose that, other ways diagonal
+        if (absDx > absDy * 1.5f) {
+            // prioritize X
+            dirX = (dx > 0) ? 1f : -1f;
+            dirY = 0f;
+        } else if (absDy > absDx * 1.5f) {
+            // prioritize Y
+            dirX = 0f;
+            dirY = (dy > 0) ? 1f : -1f;
+        } else {
+            // diagonal
+            dirX = dx / distance;
+            dirY = dy / distance;
         }
 
         float xVelocity = dirX * MOVE_SPEED;
