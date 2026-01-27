@@ -260,6 +260,19 @@ public class GameMap {
                 //if wildlife hit plant or player
                 checkWildlifeCollisions();
             }
+            // opens the door if win conditions met
+            if (canExit()) {
+                for (Exit exit : exits) {
+                    if (!exit.isActivated()) {
+                        exit.activate();
+                    }
+                }
+            }
+            
+            // checks if player visited the exit
+            if (!gameWon && !gameLost && canExit()) {
+                checkExitCollision();
+            }
             // updates daylight timer
             daylightTimeRemaining -= frameTime;
             if (daylightTimeRemaining < 0) {
@@ -276,7 +289,6 @@ public class GameMap {
         }
         //spawn fertilizer if quest completed
         maybeSpawnQuestFertilizer();
-
     }
 
     private void maybeSpawnQuestFertilizer() {
@@ -509,9 +521,12 @@ public class GameMap {
     public boolean isPaused() {
         return paused;
     }
-    //checks if u can exit
+    /** ⁠Checks if all condition are met.
+    */
     public boolean canExit() {
-        return debrisCollected >= MIN_DEBRIS_REQUIRED;
+        return hasShovel && hasFertilizer && hasWateringCan
+                && debrisCollected >= MIN_DEBRIS_REQUIRED
+                && plantsCollected >= 6;
     }
 
     /**
@@ -1100,9 +1115,13 @@ public class GameMap {
                 // if wildlife touched player -> game over
                 gameLost = true;
                 return;
+                
             }
         }
+
     }
+
+
 
     private void checkExitCollision() {
         if (gameWon || gameLost) return;
