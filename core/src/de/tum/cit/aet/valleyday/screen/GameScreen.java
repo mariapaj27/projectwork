@@ -21,6 +21,8 @@ import de.tum.cit.aet.valleyday.ValleyDayGame;
 import de.tum.cit.aet.valleyday.map.Flowers;
 import de.tum.cit.aet.valleyday.texture.Drawable;
 import de.tum.cit.aet.valleyday.map.GameMap;
+import de.tum.cit.aet.valleyday.map.MapLoader;
+
 
 /**
  * The GameScreen class is responsible for rendering the gameplay screen.
@@ -52,7 +54,12 @@ public class GameScreen implements Screen {
     private final Texture whitePixel;
     //pause menu
     private final Stage pauseMenuStage;
+    private final Stage winMenuStage;
+    private final Stage gameOverMenuStage;
     private boolean showPauseMenu = false;
+    private boolean showWinMenu = false;
+    private boolean showGameOverMenu = false;
+
 
     /**
      * Constructor for GameScreen. Sets up the camera and font.
@@ -81,6 +88,14 @@ public class GameScreen implements Screen {
         //pause menu
         this.pauseMenuStage = new Stage(new ScreenViewport());
         createPauseMenu();
+
+        // creates win menu
+        this.winMenuStage = new Stage(new ScreenViewport());
+        createWinMenu();
+
+        // creates game over menu
+        this.gameOverMenuStage = new Stage(new ScreenViewport());
+        createGameOverMenu();
     }
     
     /**
@@ -90,15 +105,15 @@ public class GameScreen implements Screen {
     @Override
     public void render(float deltaTime) {
         // checks if E key press to pick up the shovel
-        if (!showPauseMenu && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
+        if (!showPauseMenu && !showWinMenu && !showGameOverMenu && Gdx.input.isKeyJustPressed(Input.Keys.E)) {
             map.tryInteract();
         }
         // if escape key pressed open pause menu
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+        if (!showWinMenu && !showGameOverMenu && Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             togglePauseMenu();
         }
         // checks if A key press to plant/harvest/restore plants
-        if (!showPauseMenu && Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+        if (!showPauseMenu && !showWinMenu && !showGameOverMenu && Gdx.input.isKeyJustPressed(Input.Keys.A)) {
             map.tryPlantAction();
         }
         
@@ -112,17 +127,21 @@ public class GameScreen implements Screen {
         map.tick(frameTime);
 
         // Check if game is lost
-        if (map.isGameLost()) {
-            // Return to menu if game over
-            game.goToMenu();
-            return;
+        if (!showGameOverMenu && map.isGameLost()) {
+            showGameOverMenu = true;
+            map.setPaused(true);
+            Gdx.input.setInputProcessor(gameOverMenuStage);
+        }
+        //time over
+        if (!showGameOverMenu && !showWinMenu && map.getDaylightTimeRemaining() <= 0) {
+            map.setGameLost(true); // trigger the game over menu
         }
 
         //checks if the game is won
-        if(map.isGameWon()){
-            //if won, return to menu
-            game.goToMenu();
-            return;
+        if (!showWinMenu && map.isGameWon()) {
+            showWinMenu = true;
+            map.setPaused(true);
+            Gdx.input.setInputProcessor(winMenuStage);
         }
         
         // Update the camera
@@ -140,6 +159,19 @@ public class GameScreen implements Screen {
             renderPauseMenuOverlay(); //pause background(little grey)
             pauseMenuStage.act(Math.min(deltaTime, 1 / 30f)); // time of appearance
             pauseMenuStage.draw(); //draws menu
+        }
+        // renders win menu
+        if (showWinMenu) {
+            renderPauseMenuOverlay();
+            winMenuStage.act(Math.min(deltaTime, 1 / 30f));
+            winMenuStage.draw();
+        }
+
+        // renders game over menu
+        if (showGameOverMenu) {
+            renderPauseMenuOverlay();
+            gameOverMenuStage.act(Math.min(deltaTime, 1 / 30f));
+            gameOverMenuStage.draw();
         }
     }
 
@@ -252,6 +284,7 @@ public class GameScreen implements Screen {
 
         // Resume button
         TextButton resumeButton = new TextButton("Resume", game.getSkin());
+        resumeButton.getLabel().setFontScale(1.0f / 1.5f);
         resumeButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -261,6 +294,7 @@ public class GameScreen implements Screen {
 
         // Back to Title button
         TextButton backButton = new TextButton("Back to Title", game.getSkin());
+        backButton.getLabel().setFontScale(1.0f / 1.5f);
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -305,6 +339,8 @@ public class GameScreen implements Screen {
         overlayCamera.setToOrtho(false, width, height);// darkness on full screen
         hud.resize(width, height);
         pauseMenuStage.getViewport().update(width, height, true);// proper pause menu on resizing
+        winMenuStage.getViewport().update(width, height, true);
+        gameOverMenuStage.getViewport().update(width, height, true);
     }
 
     // Unused methods from the Screen interface
@@ -330,6 +366,101 @@ public class GameScreen implements Screen {
     whitePixel.dispose();
     hud.dispose();
     pauseMenuStage.dispose();
+    winMenuStage.dispose();
+    gameOverMenuStage.dispose();
+    }
+
+    /**
+     * Creates the win menu.
+     */
+    private void createWinMenu() {
+        Table table = new Table();
+        table.setFillParent(true);
+
+        // title
+        Label titleLabel = new Label("WINNER!", game.getSkin());
+        titleLabel.setFontScale(2.0f);
+
+        // back to menu button
+        TextButton backButton = new TextButton("Back To Menu", game.getSkin());
+        backButton.getLabel().setFontScale(1.0f / 1.5f);
+        backButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showWinMenu = false;
+                map.setPaused(false);
+                game.goToMenu();
+            }
+        });
+
+        // layout
+        table.add(titleLabel).padBottom(40).row();
+        table.add(backButton).width(200).height(50).row();
+
+        winMenuStage.addActor(table);
+    }
+
+    /**
+     * Creates the game over menu .
+     */
+    private void createGameOverMenu() {
+        Table table = new Table();
+        table.setFillParent(true);
+
+        // title
+        Label titleLabel = new Label("GAME OVER", game.getSkin());
+        titleLabel.setFontScale(2.0f);
+
+        // start new map button
+        TextButton newMapButton = new TextButton("Start New Map", game.getSkin());
+        newMapButton.getLabel().setFontScale(1.0f / 1.5f);
+        newMapButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showGameOverMenu = false;
+                map.setPaused(false);
+                game.loadMap(new MapLoader.MapLoadCallback() {
+                    @Override
+                    public void onMapLoaded(de.tum.cit.aet.valleyday.map.MapLoader.MapData mapData) {
+                        game.goToGame();
+                    }
+
+                    @Override
+                    public void onCancellation() {
+                        showGameOverMenu = true;
+                        map.setPaused(true);
+                        Gdx.input.setInputProcessor(gameOverMenuStage);
+                    }
+
+                    @Override
+                    public void onError(Exception exception) {
+                        exception.printStackTrace();
+                        showGameOverMenu = true;
+                        map.setPaused(true);
+                        Gdx.input.setInputProcessor(gameOverMenuStage);
+                    }
+                });
+            }
+        });
+
+        // back to menu button
+        TextButton backButton = new TextButton("Back to Menu", game.getSkin());
+        backButton.getLabel().setFontScale(1.0f / 1.5f);
+        backButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showGameOverMenu = false;
+                map.setPaused(false);
+                game.goToMenu();
+            }
+        });
+
+        // layout
+        table.add(titleLabel).padBottom(40).row();
+        table.add(newMapButton).width(200).height(50).padBottom(20).row();
+        table.add(backButton).width(200).height(50).row();
+
+        gameOverMenuStage.addActor(table);
     }
 
 }

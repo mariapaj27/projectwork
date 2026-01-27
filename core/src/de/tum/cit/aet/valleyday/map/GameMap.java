@@ -109,6 +109,8 @@ public class GameMap {
     private int plantsCollected = 0;
     private float gameTime = 0f;
     private boolean gameWon = false;
+    private float[] hiddenExitDebrisPos = null;
+
 
 
     /**
@@ -181,6 +183,11 @@ public class GameMap {
         }
         // hides water can under a random debris
         hideWateringCanBehindRandomDebris();
+
+        // if no exit exists -> hide under random debris
+        if (exits.isEmpty()) {
+            hideExitBehindRandomDebris();
+        }
 
         this.chest = null;
         this.flowers = null;
@@ -428,9 +435,17 @@ public class GameMap {
                 wateringCans.add(new WateringCan(world, debrisX, debrisY));
                 hiddenWateringCanDebrisPos = null; // watering can spawned
             }
+            // checks if this debris has a hidden exit
+            if (hiddenExitDebrisPos != null &&
+                    Math.abs(hiddenExitDebrisPos[0] - debrisX) < 0.1f &&
+                    Math.abs(hiddenExitDebrisPos[1] - debrisY) < 0.1f) {
+                exits.add(new Exit(world, debrisX, debrisY));
+                hiddenExitDebrisPos = null;
+            }
             toRemove.destroy();
             debris.remove(toRemove); // removes from debris list
             debrisCollected++;
+            return;
         }
         Seed seedToRemove = null;
         for (Seed s : seeds) {
@@ -1148,6 +1163,46 @@ public class GameMap {
     }
     public boolean isGameWon() {
         return gameWon;
+    }
+
+    /**
+     * Sets game lost state.
+     * @param lost true if game lost, false otherwise.
+     */
+    public void setGameLost(boolean lost) {
+        if (lost && !gameLost && !gameWon) {
+            gameLost = true;
+        }
+    }
+
+    /**
+     * Hides an exit behind a random debris(without watering can) if no exit exist .
+     * It will appear when that debris is destroyed.
+     */
+    private void hideExitBehindRandomDebris() {
+        if (debris.isEmpty()) {
+            return;
+        }
+        // filter debris where watering can is.
+        List<Debris> availableDebris = new ArrayList<>();
+        for (Debris d : debris) {
+            if (hiddenWateringCanDebrisPos != null) {
+                float dx = Math.abs(d.getX() - hiddenWateringCanDebrisPos[0]);
+                float dy = Math.abs(d.getY() - hiddenWateringCanDebrisPos[1]);
+                if (dx < 0.1f && dy < 0.1f) {
+                    continue;
+                }
+            }
+            availableDebris.add(d);
+        }
+
+        if (availableDebris.isEmpty()) {
+            return;
+        }
+
+        Random rnd = new Random();
+        Debris selectedDebris = availableDebris.get(rnd.nextInt(availableDebris.size()));
+        hiddenExitDebrisPos = new float[]{selectedDebris.getX(), selectedDebris.getY()};
     }
 
 }
