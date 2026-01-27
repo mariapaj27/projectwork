@@ -12,6 +12,8 @@ public class Exit implements Drawable {
     
     private final float x;
     private final float y;
+    private Body body;
+    private boolean isActivated = false;
     
     /**
      * Creates an exit at the given position.
@@ -33,20 +35,51 @@ public class Exit implements Drawable {
         BodyDef bodyDef = new BodyDef();
         bodyDef.type = BodyDef.BodyType.StaticBody;
         bodyDef.position.set(this.x, this.y);
+        this.body = world.createBody(bodyDef);
         Body body = world.createBody(bodyDef);
         
         PolygonShape box = new PolygonShape();
         box.setAsBox(0.5f, 0.5f);
         body.createFixture(box, 1.0f);
         box.dispose();
-        
         body.setUserData(this);
+    }
+    /**
+     * Opens the exit.
+     */
+   
+    public void activate() {
+        if (isActivated) return; 
+        
+        isActivated = true;
+        
+        // can pass through
+        if (body != null) {
+            for (Fixture fixture : body.getFixtureList()) {
+                fixture.setSensor(true);
+            }
+        }
+    }
+    
+   
+    public Body getBody() {
+        return body;
+    }
+    
+  
+    public boolean isActivated() {
+        return isActivated;
     }
     
     @Override
     public TextureRegion getCurrentAppearance() {
-        // texture of the exit(door)
-        return SpriteSheet.BASIC_TILES.at(7, 1);
+        if (isActivated) {
+            // open gate texture
+            return SpriteSheet.BASIC_TILES.at(7, 3);
+        } else {
+            // closed gate texture
+            return SpriteSheet.BASIC_TILES.at(7, 1);
+        }
     }
     
     @Override
