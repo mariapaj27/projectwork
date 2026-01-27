@@ -22,6 +22,7 @@ import de.tum.cit.aet.valleyday.map.Flowers;
 import de.tum.cit.aet.valleyday.texture.Drawable;
 import de.tum.cit.aet.valleyday.map.GameMap;
 import de.tum.cit.aet.valleyday.map.MapLoader;
+import de.tum.cit.aet.valleyday.audio.GameSound;
 
 
 /**
@@ -131,10 +132,12 @@ public class GameScreen implements Screen {
             showGameOverMenu = true;
             map.setPaused(true);
             Gdx.input.setInputProcessor(gameOverMenuStage);
+            GameSound.LOSE.play();
         }
         //time over
         if (!showGameOverMenu && !showWinMenu && map.getDaylightTimeRemaining() <= 0) {
             map.setGameLost(true); // trigger the game over menu
+            GameSound.LOSE.play();
         }
 
         //checks if the game is won
@@ -142,6 +145,7 @@ public class GameScreen implements Screen {
             showWinMenu = true;
             map.setPaused(true);
             Gdx.input.setInputProcessor(winMenuStage);
+            GameSound.WIN.play();
         }
         
         // Update the camera

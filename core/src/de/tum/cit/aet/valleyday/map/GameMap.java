@@ -7,6 +7,7 @@ import de.tum.cit.aet.valleyday.ValleyDayGame;
 import de.tum.cit.aet.valleyday.texture.Drawable;
 import java.util.HashSet;
 import java.util.Random;
+import de.tum.cit.aet.valleyday.audio.GameSound;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -445,6 +446,7 @@ public class GameMap {
             toRemove.destroy();
             debris.remove(toRemove); // removes from debris list
             debrisCollected++;
+            GameSound.DIG.playRepeated(3, 0.165f);
             return;
         }
         Seed seedToRemove = null;
@@ -460,6 +462,7 @@ public class GameMap {
             seedToRemove.destroy();
             seeds.remove(seedToRemove);
             seedsCollected++;
+            GameSound.DIG.playRepeated(3, 0.165f);
         }
     }
     /**
@@ -582,6 +585,7 @@ public class GameMap {
         nearest.destroy();
         fertilizers.remove(nearest);
         hasFertilizer = true;
+        GameSound.PICK.play();
         // when fertilizer is picked up, add pickable seeds on map
         spawnQuestSeedsIfNeeded();
         return true;
@@ -641,6 +645,7 @@ public class GameMap {
         if (toRemove != null) {
             shovels.remove(toRemove);
             hasShovel = true;
+            GameSound.PICK.play();
             player.setShovelEquipped(true); // equipped true
             return true;
         }
@@ -793,6 +798,7 @@ public class GameMap {
         nearest.destroy();
         wateringCans.remove(nearest);
         hasWateringCan = true;
+        GameSound.PICK.play();
         return true;
     }
 
@@ -853,6 +859,7 @@ public class GameMap {
             if (plantAtPos.canHarvest()) {
                 plants.remove(plantAtPos);
                 plantsCollected++;
+                GameSound.PICK.play();
                 return true;
             }
             // restores rotten plant if has watering can

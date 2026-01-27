@@ -31,4 +31,8 @@ public enum MusicTrack {
     public void play() {
         this.music.play();
     }
+
+    public void stop() {
+        this.music.stop();
+    }
 }

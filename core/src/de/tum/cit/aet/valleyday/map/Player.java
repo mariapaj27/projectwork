@@ -10,6 +10,7 @@ import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.World;
 import de.tum.cit.aet.valleyday.texture.Animations;
 import de.tum.cit.aet.valleyday.texture.Drawable;
+import de.tum.cit.aet.valleyday.audio.GameSound;
 
 /**
  * Represents the player character in the game.
@@ -117,6 +118,7 @@ public class Player implements Drawable {
         if (sPressed && !isShouting && !isHitting) {
             // Start shouting when S is pressed
             isShouting = true;
+            GameSound.ROAR.play();
             shoutingTime = 0f;
         }
 
