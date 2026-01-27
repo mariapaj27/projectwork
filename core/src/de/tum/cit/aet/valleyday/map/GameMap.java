@@ -108,6 +108,8 @@ public class GameMap {
 
     private int plantsCollected = 0;
     private float gameTime = 0f;
+    private boolean gameWon = false;
+
 
     /**
      * Constructor that loads map from MapLoader data.
@@ -274,6 +276,7 @@ public class GameMap {
         }
         //spawn fertilizer if quest completed
         maybeSpawnQuestFertilizer();
+
     }
 
     private void maybeSpawnQuestFertilizer() {
@@ -1101,10 +1104,31 @@ public class GameMap {
         }
     }
 
+    private void checkExitCollision() {
+        if (gameWon || gameLost) return;
+
+        float playerX = player.getX();
+        float playerY = player.getY();
+
+        for (Exit exit : exits) {
+            if (!exit.isActivated()) continue;
+
+            //checks if player is on exit
+            float dx = Math.abs(playerX - exit.getX());
+            float dy = Math.abs(playerY - exit.getY());
+
+            if (dx < 0.6f && dy < 0.6f) {
+                gameWon = true;
+                return;
+            }
+        }
+    }
+
     public boolean isGameLost() {
         return gameLost;
     }
-
-
+    public boolean isGameWon() {
+        return gameWon;
+    }
 
 }

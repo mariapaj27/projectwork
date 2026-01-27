@@ -117,6 +117,13 @@ public class GameScreen implements Screen {
             game.goToMenu();
             return;
         }
+
+        //checks if the game is won
+        if(map.isGameWon()){
+            //if won, return to menu
+            game.goToMenu();
+            return;
+        }
         
         // Update the camera
         updateCamera();
