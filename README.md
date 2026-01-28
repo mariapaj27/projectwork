@@ -1,6 +1,4 @@
-# Valley Day
-
-/* ---------------------------------------------------------------------
+/* ----------------------------------------------------------------------
 *  Valley Day
 * ----------------------------------------------------------------------
 *
@@ -90,10 +88,10 @@ All renderable objects implement the `Drawable` interface.
 - **Gameplay State** — Active gameplay where the player can move, grow crops, interact
   with objects, and scare wildlife while the time keeps running.
 
-- **Paused State** — Occurs when the player presses **Esc**. The game timer and all 
+- **Paused State** — Occurs when the player presses **Esc**. The game timer and all
   gameplay activity are paused until the game is resumed.
 
-- **Win State** — Activated when all objectives are fulfilled and the player 
+- **Win State** — Activated when all objectives are fulfilled and the player
   accesses the Exit. A win screen is displayed.
 
 - **Game Over State** — Triggered when time runs out, wildlife touches a player
@@ -112,3 +110,106 @@ All renderable objects implement the `Drawable` interface.
     - Planting and harvesting crops
     - Wildlife encounters
     - Winning and losing the game
+
+
+## How to Run the Game ---------------------------------------------------
+
+
+1. Clone or open the project.
+2. Ensure **Java 17** is installed
+3. From the project root, run:
+    - **Windows / Linux:** `./gradlew desktop:run`
+    - **macOS:** `./gradlew desktop:run`
+4. From the main menu, load one of the map (`.properties` files) to start a game.
+
+
+## Game Rules --------------------------------------------------------
+
+
+1. Pick the **Shovel** and collect at least **6 Debris**
+2. Collect **Fertilizer** and **6 Seeds** (seeds appear after the debris and fertilizer collected)
+3. **Plant** seeds on garden beds
+4. **Protect plants** from Wildlife; find the **Watering Can** under
+   random Debris to restore rotten plants
+5. **Collect all 6 plants** and do not get hit by Wildlife
+6. When all requirements are met, go to the **Exit** and win
+
+
+## Controls --------------------------------------------------------------
+
+
+- **Arrow Keys** — Move player(up,left,right,down)
+- **D (hold)** — Clear debris or break seeds (faster with Shovel)
+- **E** — Pick up Shovel, Fertilizer, or Watering Can when facing them
+- **A** — Plant seed / harvest plant / restore rotten plant
+- **S** — Shout to scare nearby Wildlife
+- **Esc** — Pause, Resume or Back to menu
+
+
+## Core Gameplay Systems --------------------------------------------------------
+
+
+### Player Tools
+- **Shovel** - On the map (value 7). Speeds up  destruction of debris
+
+- **Fertilizer** - Appears at (9,1) after 6 debris collected. Unlocks seed
+  spawning
+
+- **Watering Can** - Hidden under one random Debris at game start; appears when
+  that Debris is cleared. Restores rotten plants
+
+
+### Win Conditions
+- **Exit** - On the map or under one random Debris (if no exit in the map).
+  Becomes passable when you have Shovel, Fertilizer, Watering Can, 6 debris, and
+  6 plants
+-
+
+### Failure Conditions
+- **Time** - A 5‑minute countdown; at zero you lose
+
+- **Rotting** - Mature plants rotten if not harvested in time; use the
+  Watering Can to restore them
+
+- **Wildlife** - Move toward plants (or the player if no plants). If they
+  touch the player or reach a plant, game is over
+
+
+
+## Bonus Features --------------------------------------------------------
+
+
+- **Daylight darkening** - As the timer runs down, a dark overlay gradually
+  increases (e.g. from 5:00 toward 1:30), then stays at a fixed level until time
+  runs out. Pause freezes the timer and the darkening.
+
+- **Diagonal movement** - The farmer can move in eight directions; diagonal
+  input is normalized so speed stays consistent (when two arrows pressed simultaneously)
+
+- **Dynamic wildlife spawning** — Wildlife appear randomly after seeds are
+  planted rather than spawning in fixed positions.
+
+- **Wildlife unstuck logic** - When Wildlife get stuck (e.g. between debris),
+  they use simple obstacle-avoidance: they try several escape directions
+  (perpendicular, diagonal, axis-only) and alternate strategies over time so they
+  can work their way around blockages instead of staying stuck
+
+- **Context hints** - Context hints appear when you are close and facing
+  something interactable: e.g. “Press E to take the shovel/fertilizer/watering
+  can”, or “Press A to plant / harvest / restore”. The hint area uses the same
+  brown panel style as the HUD
+
+
+
+## Authors ---------------------------------------------------------------
+
+
+- **Maria Pajkusz**
+
+- **Adel Daulet** 
+
+
+
+
+
+
